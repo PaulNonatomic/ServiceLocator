@@ -1,0 +1,18 @@
+{
+    "name": "com.nonatomic.servicelocator.editor",
+    "rootNamespace": "Nonatomic.ServiceLocator",
+    "references": [
+        "com.nonatomic.servicelocator.runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

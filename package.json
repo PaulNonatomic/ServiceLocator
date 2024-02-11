@@ -1,0 +1,33 @@
+﻿{
+  "name": "com.nonatomic.servicelocator",
+  "version": "0.0.0-beta",
+  "displayName": "Service Locator",
+  "description": "Service Locator",
+  "unity": "2022.3",
+  "unityRelease": "1f1",
+  "documentationUrl": "https://github.com/PaulNonatomic/VisualStateMachineV2/blob/main/README.md",
+  "changelogUrl": "https://github.com/PaulNonatomic/VisualStateMachineV2/blob/main/CHANGELOG.md",
+  "dependencies": {
+    
+  },
+  "keywords": [
+    "Unity",
+    "Package",
+    "Service",
+    "Locator"
+  ],
+  "author": {
+    "name": "Nonatomic",
+    "email": "paul@nonatomic.co.uk",
+    "url": "https://nonatomic.co.uk/"
+  },
+  "type": "tool",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:PaulNonatomic/ServiceLocator.git"
+  },
+  "samples": [
+   
+  ]
+}
+  
