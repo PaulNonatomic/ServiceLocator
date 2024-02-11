@@ -10,7 +10,7 @@ namespace Nonatomic.ServiceLocator
 	[CreateAssetMenu(fileName = "ServiceLocator", menuName = "ServiceLocator", order = 1)]
 	public class ServiceLocator : ScriptableObject
 	{
-		private Dictionary<Type, IService> _serviceMap = new ();
+		private Dictionary<Type, object> _serviceMap = new ();
 		
 		/// <summary>
 		/// Registers a service with the service locator.
@@ -20,7 +20,7 @@ namespace Nonatomic.ServiceLocator
 		/// <remarks>
 		/// If a service of the same type is already registered, this method logs a warning and ignores the registration.
 		/// </remarks>
-		public void Register<T>(T service) where T : class, IService
+		public void Register<T>(T service) where T : class
 		{
 			var serviceType = typeof(T);
 			if (_serviceMap.ContainsKey(serviceType))
@@ -36,7 +36,7 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		/// <typeparam name="T">The type of the service to register or replace.</typeparam>
 		/// <param name="service">The service instance to register or replace.</param>
-		public void RegisterOrReplace<T>(T service) where T : class, IService
+		public void RegisterOrReplace<T>(T service) where T : class
 		{
 			_serviceMap[typeof(T)] = service;
 		}
