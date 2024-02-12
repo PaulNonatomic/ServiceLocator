@@ -9,9 +9,9 @@ There are many ways you can contribute to our project:
 - Submitting bug reports and feature requests
 - Writing tutorials or blog posts
 - Improving the documentation
-- Writing code which can be incorporated into Visual State Machine V2 itself
+- Writing code which can be incorporated into Service Locator itself
 
-### Reporting Bugs
+### Reporting B[package.json](package.json)ugs
 
 Bugs are tracked as GitHub issues. To report a bug, create an issue and use our bug report template to provide all the necessary information.
 
