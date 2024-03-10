@@ -1,6 +1,6 @@
 ﻿{
   "name": "com.nonatomic.servicelocator",
-  "version": "0.0.0-beta",
+  "version": "0.1.1-beta",
   "displayName": "Service Locator",
   "description": "Service Locator",
   "unity": "2022.3",
@@ -8,7 +8,7 @@
   "documentationUrl": "https://github.com/PaulNonatomic/VisualStateMachineV2/blob/main/README.md",
   "changelogUrl": "https://github.com/PaulNonatomic/VisualStateMachineV2/blob/main/CHANGELOG.md",
   "dependencies": {
-    
+    "com.unity.test-framework": "1.3.9"
   },
   "keywords": [
     "Unity",

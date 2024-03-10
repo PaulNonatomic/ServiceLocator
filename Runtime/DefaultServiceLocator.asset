@@ -9,6 +9,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f2189a0da68423885df2a5f8fa184d8, type: 3}
+  m_Script: {fileID: 11500000, guid: c331ca09aa9b493f94c4c2ba91769f55, type: 3}
   m_Name: DefaultServiceLocator
   m_EditorClassIdentifier: 
