@@ -50,10 +50,6 @@ To unregister a service, use the Unregister<T> method:
 locator.Unregister<IMyService>(myService);
 ```
 
-### Advanced Features ###
-* RegisterOrReplace: To update an existing service with a new instance.
-* TryGetService: To safely attempt to retrieve a service without throwing exceptions.
-
 ## Contributing ##
 Contributions are welcome! Please refer to CONTRIBUTING.md for guidelines on how to contribute.
 
