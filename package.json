@@ -8,7 +8,7 @@
   "documentationUrl": "https://github.com/PaulNonatomic/VisualStateMachineV2/blob/main/README.md",
   "changelogUrl": "https://github.com/PaulNonatomic/VisualStateMachineV2/blob/main/CHANGELOG.md",
   "dependencies": {
-    
+    "com.unity.test-framework": "1.3.9"
   },
   "keywords": [
     "Unity",
