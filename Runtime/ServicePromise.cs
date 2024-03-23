@@ -9,7 +9,7 @@ namespace Nonatomic.ServiceLocator
 
 		public Task<T> Task => _task.Task;
 
-		public void Fulfill(object  service)
+		public void Fulfill(object service)
 		{
 			if (service is not T typedService)
 			{
