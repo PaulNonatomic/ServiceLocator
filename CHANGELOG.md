@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.2.0-beta] - Mar 23, 2024
+- Added dedicated property drawer for the ServiceLocator
+
 ## [0.1.1-beta] - Mar 10, 2024
 - Removed unrequired interfaces from the ServiceLocator
 
