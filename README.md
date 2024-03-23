@@ -28,7 +28,19 @@ locator.Register<IMyService>(new MyService());
 To retrieve a registered service, use the GetService<T> method:
 
 ```cs
-IMyService myService = locator.GetService<IMyService>();
+IMyService myService;
+
+_serviceLocator.GetService<IMyService>().Task.ContinueWith(task =>
+			{
+				myService = task.Result;
+			});
+```
+
+or
+
+```cs
+IMyService myService;
+_serviceLocator.TryGetService<IMyService>(out myService);
 ```
 
 ### Unregistering Services ###
@@ -37,10 +49,6 @@ To unregister a service, use the Unregister<T> method:
 ```cs
 locator.Unregister<IMyService>(myService);
 ```
-
-### Advanced Features ###
-* RegisterOrReplace: To update an existing service with a new instance.
-* TryGetService: To safely attempt to retrieve a service without throwing exceptions.
 
 ## Contributing ##
 Contributions are welcome! Please refer to CONTRIBUTING.md for guidelines on how to contribute.
