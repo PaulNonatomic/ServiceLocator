@@ -1,7 +1,13 @@
-﻿namespace Nonatomic.ServiceLocator
+﻿using System;
+
+namespace Nonatomic.ServiceLocator
 {
-	public interface IServicePromise
+	public interface IServicePromise<T>
 	{
-		void Fulfill(object service);
+		void Resolve(T value);
+		void Reject(Exception ex);
+
+		ServicePromise<TResult> Then<TResult>(Func<T, TResult> onFulfilled);
+		ServicePromise<T> Catch(Action<Exception> onRejected);
 	}
 }
