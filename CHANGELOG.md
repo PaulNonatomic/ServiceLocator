@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.3.1-beta] - Jul 06, 2024
+- Fix for GetServiceCoroutine running a perpetual while loop if a service is never registered.
+
 ## [0.3.0-beta] - Jul 06, 2024
 - Completely rewrote this to simplify the promise interface, add support for additional service retrieval methods and enhanced cleanup workflow
 - Wrote all new tests

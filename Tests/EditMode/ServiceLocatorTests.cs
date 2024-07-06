@@ -30,15 +30,15 @@ namespace Tests.EditMode
 			var service = new TestService();
 			_serviceLocator.Register(service);
 
-			Assert.IsTrue(_serviceLocator.TryGetService(out TestService retrievedService));
-			Assert.AreEqual(service, retrievedService);
+			Assert.IsTrue(_serviceLocator.TryGetService(out TestService testService));
+			Assert.AreEqual(service, testService);
 		}
 
 		[Test]
 		public void TryGetService_Failure_WhenServiceNotRegistered()
 		{
-			Assert.IsFalse(_serviceLocator.TryGetService(out TestService service));
-			Assert.IsNull(service);
+			Assert.IsFalse(_serviceLocator.TryGetService(out TestService? testService));
+			Assert.IsNull(testService);
 		}
 
 		[Test]
@@ -48,7 +48,7 @@ namespace Tests.EditMode
 			_serviceLocator.Register(service);
 			_serviceLocator.Unregister<TestService>();
 
-			Assert.IsFalse(_serviceLocator.TryGetService(out TestService retrievedService));
+			Assert.IsFalse(_serviceLocator.TryGetService(out TestService testService));
 		}
 
 		[Test]
@@ -57,28 +57,46 @@ namespace Tests.EditMode
 			var service = new TestService();
 			_serviceLocator.Register(service);
 
-			var retrievedService = _serviceLocator.GetServiceOrDefault<TestService>();
-			Assert.AreEqual(service, retrievedService);
+			var testService = _serviceLocator.GetServiceOrDefault<TestService>();
+			Assert.AreEqual(service, testService);
 		}
 
 		[Test]
 		public void GetServiceOrDefault_ReturnsNull_WhenNotRegistered()
 		{
-			var retrievedService = _serviceLocator.GetServiceOrDefault<TestService>();
-			Assert.IsNull(retrievedService);
+			var testService = _serviceLocator.GetServiceOrDefault<TestService>();
+			Assert.IsNull(testService);
+		}
+		
+		[UnityTest]
+		public IEnumerator GetServiceCoroutine_ReturnsNull_WhenCleanedUp()
+		{
+			TestService? testService = null;
+			var coroutine = _serviceLocator.GetServiceCoroutine<TestService>(service => testService = service);
+
+			// Start the coroutine
+			coroutine.MoveNext();
+    
+			// Cleanup the ServiceLocator
+			_serviceLocator.Cleanup();
+
+			// Run the coroutine to completion
+			while (coroutine.MoveNext()) yield return null;
+
+			Assert.IsNull(testService);
 		}
 
 		[UnityTest]
 		public IEnumerator GetServiceAsync_ReturnsService_WhenRegistered()
 		{
-			var service = new TestService();
-			_serviceLocator.Register(service);
+			var testService = new TestService();
+			_serviceLocator.Register(testService);
 
 			var task = _serviceLocator.GetServiceAsync<TestService>();
 
 			while (!task.IsCompleted) yield return null;
 
-			Assert.AreEqual(service, task.Result);
+			Assert.AreEqual(testService, task.Result);
 		}
 
 		[UnityTest]
@@ -88,19 +106,19 @@ namespace Tests.EditMode
 
 			yield return null;
 
-			var service = new TestService();
-			_serviceLocator.Register(service);
+			var testService = new TestService();
+			_serviceLocator.Register(testService);
 
 			while (!task.IsCompleted) yield return null;
 
-			Assert.AreEqual(service, task.Result);
+			Assert.AreEqual(testService, task.Result);
 		}
 
 		[UnityTest]
 		public IEnumerator GetService_Promise_ReturnsService_WhenRegistered()
 		{
-			var service = new TestService();
-			_serviceLocator.Register(service);
+			var testService = new TestService();
+			_serviceLocator.Register(testService);
 
 			TestService retrievedService = null;
 			var promise = _serviceLocator.GetService<TestService>();
@@ -109,25 +127,25 @@ namespace Tests.EditMode
 
 			yield return new WaitUntil(() => retrievedService != null);
 
-			Assert.AreEqual(service, retrievedService);
+			Assert.AreEqual(testService, retrievedService);
 		}
 
 		[UnityTest]
 		public IEnumerator GetService_Promise_WaitsForService_WhenNotImmediatelyAvailable()
 		{
-			TestService retrievedService = null;
+			TestService testService = null;
 			var promise = _serviceLocator.GetService<TestService>();
 
-			promise.Then(s => retrievedService = s).Catch(ex => Assert.Fail(ex.Message));
+			promise.Then(service => testService = service).Catch(ex => Assert.Fail(ex.Message));
 
 			yield return null;
 
 			var service = new TestService();
 			_serviceLocator.Register(service);
 
-			yield return new WaitUntil(() => retrievedService != null);
+			yield return new WaitUntil(() => testService != null);
 
-			Assert.AreEqual(service, retrievedService);
+			Assert.AreEqual(service, testService);
 		}
 
 		[Test]
@@ -138,7 +156,7 @@ namespace Tests.EditMode
 			_serviceLocator.Register(service1);
 			_serviceLocator.Register(service2);
 
-			_serviceLocator.CleanupServiceLocator();
+			_serviceLocator.Cleanup();
 
 			Assert.IsFalse(_serviceLocator.TryGetService(out TestService retrievedService1));
 			Assert.IsFalse(_serviceLocator.TryGetService(out AnotherTestService retrievedService2));
@@ -147,22 +165,27 @@ namespace Tests.EditMode
 		[UnityTest]
 		public IEnumerator GetServiceCoroutine_Success()
 		{
-			var service = new TestService();
-			_serviceLocator.Register(service);
+			var testService = new TestService();
+			_serviceLocator.Register(testService);
 
 			TestService retrievedService = null;
-			var coroutine = _serviceLocator.GetServiceCoroutine<TestService>(s => retrievedService = s);
+			var coroutine = _serviceLocator.GetServiceCoroutine<TestService>(testService => retrievedService = testService);
 
 			while (coroutine.MoveNext()) yield return null;
 
-			Assert.AreEqual(service, retrievedService);
+			Assert.AreEqual(testService, retrievedService);
 		}
 
 		[UnityTest]
 		public IEnumerator GetServiceCoroutine_WaitsForService_WhenNotImmediatelyAvailable()
 		{
-			TestService retrievedService = null;
-			var coroutine = _serviceLocator.GetServiceCoroutine<TestService>(s => retrievedService = s);
+			TestService? retrievedService = null;
+			var coroutineCompleted = false;
+			var coroutine = _serviceLocator.GetServiceCoroutine<TestService>(testService => 
+			{
+				retrievedService = testService;
+				coroutineCompleted = true;
+			});
 
 			// Simulate running the coroutine for a few frames
 			for (var i = 0; i < 3; i++)
@@ -173,6 +196,7 @@ namespace Tests.EditMode
 
 			// Service hasn't been registered yet, so retrievedService should still be null
 			Assert.IsNull(retrievedService);
+			Assert.IsFalse(coroutineCompleted);
 
 			var service = new TestService();
 			_serviceLocator.Register(service);
@@ -180,7 +204,40 @@ namespace Tests.EditMode
 			// Run the coroutine until completion
 			while (coroutine.MoveNext()) yield return null;
 
+			Assert.IsTrue(coroutineCompleted);
 			Assert.AreEqual(service, retrievedService);
+		}
+
+		[UnityTest]
+		public IEnumerator GetServiceCoroutine_ReturnsNull_WhenCleanedUpBeforeServiceRegistered()
+		{
+			TestService? retrievedService = null;
+			bool coroutineCompleted = false;
+			var coroutine = _serviceLocator.GetServiceCoroutine<TestService>(testService => 
+			{
+				retrievedService = testService;
+				coroutineCompleted = true;
+			});
+
+			// Simulate running the coroutine for a few frames
+			for (var i = 0; i < 3; i++)
+			{
+				coroutine.MoveNext();
+				yield return null;
+			}
+
+			// Service hasn't been registered yet, so retrievedService should still be null
+			Assert.IsNull(retrievedService);
+			Assert.IsFalse(coroutineCompleted);
+
+			// Simulate cleanup
+			_serviceLocator.Cleanup();
+
+			// Run the coroutine until completion
+			while (coroutine.MoveNext()) yield return null;
+
+			Assert.IsTrue(coroutineCompleted);
+			Assert.IsNull(retrievedService);
 		}
 		
 		[Test]
@@ -206,13 +263,13 @@ namespace Tests.EditMode
 		{
 			public void ForceInitialize() 
 			{
-				InitializeServiceLocator();
+				Initialize();
 				IsInitialized = true;
 			}
 
 			public void ForceDeInitialize() 
 			{
-				DeInitializeServiceLocator();
+				DeInitialize();
 				IsInitialized = false;
 			}
 
@@ -220,7 +277,7 @@ namespace Tests.EditMode
 			public new void OnDisable() => base.OnDisable();
 
 			// Override to prevent automatic initialization
-			protected override void InitializeServiceLocator()
+			protected override void Initialize()
 			{
 				// Do nothing, allowing manual control in tests
 			}

@@ -62,7 +62,7 @@ namespace Nonatomic.ServiceLocator
 			{
 				callback(service);
 			}
-			PendingCoroutines.RemoveAll(pc => pc.Item1 == serviceType);
+			PendingCoroutines.RemoveAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
 		}
 
 		/// <summary>
@@ -106,7 +106,7 @@ namespace Nonatomic.ServiceLocator
 		/// <typeparam name="T">The type of service to retrieve.</typeparam>
 		/// <param name="service">When this method returns, contains the service instance if found; otherwise, null.</param>
 		/// <returns>true if the service was found; otherwise, false.</returns>
-		public virtual bool TryGetService<T>(out T service) where T : class
+		public virtual bool TryGetService<T>(out T? service) where T : class
 		{
 			service = null;
 
@@ -125,21 +125,24 @@ namespace Nonatomic.ServiceLocator
 		/// <typeparam name="T">The type of service to retrieve.</typeparam>
 		/// <param name="callback">Action to be called with the retrieved service.</param>
 		/// <returns>An IEnumerator for use with StartCoroutine.</returns>
-		public virtual IEnumerator GetServiceCoroutine<T>(Action<T> callback) where T : class
+		public virtual IEnumerator GetServiceCoroutine<T>(Action<T?> callback) where T : class
 		{
 			var serviceType = typeof(T);
 
+			// Check if the service is already available
 			if (ServiceMap.TryGetValue(serviceType, out var service))
 			{
 				callback((T)service);
 				yield break;
 			}
 
-			var pendingCoroutine = (serviceType, new Action<object>(obj => callback((T)obj)));
+			// Create a pending coroutine entry
+			var pendingCoroutine = (serviceType, new Action<object?>(obj => callback(obj as T)));
 			PendingCoroutines.Add(pendingCoroutine);
 
-			while (true)
+			while (PendingCoroutines.Count > 0)
 			{
+				// Check if the service has been registered during this iteration
 				if (ServiceMap.TryGetValue(serviceType, out service))
 				{
 					PendingCoroutines.Remove(pendingCoroutine);
@@ -156,7 +159,7 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		/// <typeparam name="T">The type of service to retrieve.</typeparam>
 		/// <returns>The service instance if found; otherwise, null.</returns>
-		public virtual T GetServiceOrDefault<T>() where T : class
+		public virtual T? GetServiceOrDefault<T>() where T : class
 		{
 			return TryGetService(out T service) ? service : null;
 		}
@@ -187,12 +190,12 @@ namespace Nonatomic.ServiceLocator
 					PromiseMap[serviceType] = taskCompletion;
 				}
 
-				taskCompletion.Task.ContinueWith(t =>
+				taskCompletion.Task.ContinueWith(task =>
 				{
-					if (t.IsCompletedSuccessfully)
-						promise.Resolve((T)t.Result);
+					if (task.IsCompletedSuccessfully)
+						promise.Resolve((T)task.Result);
 					else
-						promise.Reject(t.Exception);
+						promise.Reject(task.Exception);
 				});
 			}
 
@@ -202,7 +205,7 @@ namespace Nonatomic.ServiceLocator
 		/// <summary>
 		/// Cleans up the ServiceLocator, clearing services, promises, and coroutines without affecting initialization state.
 		/// </summary>
-		public virtual void CleanupServiceLocator()
+		public virtual void Cleanup()
 		{
 			ServiceMap.Clear();
 			CleanupPromises();
@@ -217,7 +220,7 @@ namespace Nonatomic.ServiceLocator
 		{
 			if (!IsInitialized)
 			{
-				InitializeServiceLocator();
+				Initialize();
 			}
 		}
 
@@ -227,13 +230,13 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		protected virtual void OnDisable()
 		{
-			DeInitializeServiceLocator();
+			DeInitialize();
 		}
 
 		/// <summary>
 		/// Initializes the ServiceLocator, setting up scene-based cleanup.
 		/// </summary>
-		protected virtual void InitializeServiceLocator()
+		protected virtual void Initialize()
 		{
 			SceneManager.sceneUnloaded += OnSceneUnloaded;
 			IsInitialized = true;
@@ -242,11 +245,11 @@ namespace Nonatomic.ServiceLocator
 		/// <summary>
 		/// Fully de-initializes the ServiceLocator, clearing all data and resetting its state.
 		/// </summary>
-		protected virtual void DeInitializeServiceLocator()
+		protected virtual void DeInitialize()
 		{
 			SceneManager.sceneUnloaded -= OnSceneUnloaded;
 			IsInitialized = false;
-			CleanupServiceLocator();
+			Cleanup();
 		}
 
 		/// <summary>

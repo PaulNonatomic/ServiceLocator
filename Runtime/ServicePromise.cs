@@ -34,16 +34,17 @@ namespace Nonatomic.ServiceLocator
 			});
 			return resultPromise;
 		}
+		
 		public ServicePromise<T> Catch(Action<Exception> onRejected)
 		{
 			var resultPromise = new ServicePromise<T>();
-			_taskCompletion.Task.ContinueWith(t =>
+			_taskCompletion.Task.ContinueWith(task =>
 			{
-				if (t.IsFaulted)
+				if (task.IsFaulted)
 				{
 					try
 					{
-						onRejected(t.Exception);
+						onRejected(task.Exception);
 						resultPromise.Resolve(default);
 					}
 					catch (Exception ex)
@@ -53,7 +54,7 @@ namespace Nonatomic.ServiceLocator
 				}
 				else
 				{
-					resultPromise.Resolve(t.Result);
+					resultPromise.Resolve(task.Result);
 				}
 			});
 			return resultPromise;
