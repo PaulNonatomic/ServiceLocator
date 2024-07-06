@@ -13,13 +13,13 @@ namespace Nonatomic.ServiceLocator
 		public ServicePromise<TResult> Then<TResult>(Func<T, TResult> onFulfilled)
 		{
 			var resultPromise = new ServicePromise<TResult>();
-			_taskCompletion.Task.ContinueWith(t =>
+			_taskCompletion.Task.ContinueWith(task =>
 			{
-				if (t.IsCompletedSuccessfully)
+				if (task.IsCompletedSuccessfully)
 				{
 					try
 					{
-						var result = onFulfilled(t.Result);
+						var result = onFulfilled(task.Result);
 						resultPromise.Resolve(result);
 					}
 					catch (Exception ex)
@@ -29,7 +29,7 @@ namespace Nonatomic.ServiceLocator
 				}
 				else
 				{
-					resultPromise.Reject(t.Exception);
+					resultPromise.Reject(task.Exception);
 				}
 			});
 			return resultPromise;
