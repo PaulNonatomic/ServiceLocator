@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.0-beta] - Jul 06, 2024
+- Completely rewrote this to simplify the promise interface, add support for additional service retrieval methods and enhanced cleanup workflow
+- Wrote all new tests
+
 ## [0.2.0-beta] - Mar 23, 2024
 - Added dedicated property drawer for the ServiceLocator
 

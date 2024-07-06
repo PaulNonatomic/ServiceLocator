@@ -3,20 +3,60 @@ using System.Threading.Tasks;
 
 namespace Nonatomic.ServiceLocator
 {
-	public class ServicePromise<T> : IServicePromise
+	public class ServicePromise<T> : IServicePromise<T>
 	{
-		private readonly TaskCompletionSource<T> _task = new TaskCompletionSource<T>();
+		private readonly TaskCompletionSource<T> _taskCompletion = new TaskCompletionSource<T>();
 
-		public Task<T> Task => _task.Task;
+		public void Resolve(T value) => _taskCompletion.TrySetResult(value);
+		public void Reject(Exception ex) => _taskCompletion.TrySetException(ex);
 
-		public void Fulfill(object service)
+		public ServicePromise<TResult> Then<TResult>(Func<T, TResult> onFulfilled)
 		{
-			if (service is not T typedService)
+			var resultPromise = new ServicePromise<TResult>();
+			_taskCompletion.Task.ContinueWith(task =>
 			{
-				throw new InvalidCastException($"Cannot fulfill promise with service of type {service.GetType()} as {typeof(T)}");
-			}
-			
-			_task.SetResult(typedService);
+				if (task.IsCompletedSuccessfully)
+				{
+					try
+					{
+						var result = onFulfilled(task.Result);
+						resultPromise.Resolve(result);
+					}
+					catch (Exception ex)
+					{
+						resultPromise.Reject(ex);
+					}
+				}
+				else
+				{
+					resultPromise.Reject(task.Exception);
+				}
+			});
+			return resultPromise;
+		}
+		public ServicePromise<T> Catch(Action<Exception> onRejected)
+		{
+			var resultPromise = new ServicePromise<T>();
+			_taskCompletion.Task.ContinueWith(t =>
+			{
+				if (t.IsFaulted)
+				{
+					try
+					{
+						onRejected(t.Exception);
+						resultPromise.Resolve(default);
+					}
+					catch (Exception ex)
+					{
+						resultPromise.Reject(ex);
+					}
+				}
+				else
+				{
+					resultPromise.Resolve(t.Result);
+				}
+			});
+			return resultPromise;
 		}
 	}
 }
