@@ -1,5 +1,10 @@
 # Change Log
 
+## [0.3.2-beta] - Aug 28, 2024
+- Exposed the ServiceLocator of MonoService through a protected member
+    - As the ServiceLocator field is serialized i've included the FormerlySerializedAs attribute to resolve any broken serialization for now. 
+    - This will be removed in a future update.
+  
 ## [0.3.1-beta] - Jul 06, 2024
 - Fix for GetServiceCoroutine running a perpetual while loop if a service is never registered.
 
