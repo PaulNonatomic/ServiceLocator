@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -161,7 +162,7 @@ namespace Nonatomic.ServiceLocator
 		/// <returns>The service instance if found; otherwise, null.</returns>
 		public virtual T? GetServiceOrDefault<T>() where T : class
 		{
-			return TryGetService(out T service) ? service : null;
+			return TryGetService(out T? service) ? service : null;
 		}
 
 		/// <summary>
@@ -259,7 +260,7 @@ namespace Nonatomic.ServiceLocator
 		{
 			foreach (var (_, callback) in PendingCoroutines)
 			{
-				callback(null);
+				callback(null!);
 			}
 			PendingCoroutines.Clear();
 		}
