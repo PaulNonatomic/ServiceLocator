@@ -12,6 +12,7 @@ To install ServiceLocator in your Unity project, add the package from the git UR
 - Promise-based service access
 - Coroutine-based service retrieval
 - Automatic service registration and unregistration for MonoBehaviours
+- Ability to retrieve multiple services simultaneously.
 
 ## Usage
 
@@ -28,47 +29,115 @@ However should you wish to create a new instance of the ServiceLocator then...
 To register a service with the ServiceLocator, use the `Register<T>` method:
 
 ```csharp
-public class MyService : IMyService
+public interface IMyService
 {
-    // Service implementation
+    void DoSomething();
 }
 
-ServiceLocator locator = // Get your ServiceLocator instance
+public class MyService : IMyService
+{
+    public void DoSomething()
+    {
+        // Service implementation
+    }
+}
+
+// Get your ServiceLocator instance
+ServiceLocator locator = // ... obtain reference to your ServiceLocator instance
 locator.Register<IMyService>(new MyService());
+
 ```
 
 ### Accessing Services
 ServiceLocator provides multiple ways to retrieve services:
 
-1. Async/Await:
+1. Async/Await - Single Service:
 ```csharp
 IMyService myService = await locator.GetServiceAsync<IMyService>();
+myService.DoSomething();
 ```
 
-2. Promise-based:
+2. Promise-based - Single Service:
 ```csharp
 locator.GetService<IMyService>()
     .Then(service => {
-        // Use the service
+        service.DoSomething();
     })
     .Catch(ex => {
         Debug.LogError($"Failed to get service: {ex.Message}");
     });
+
 ```
 
-3. Coroutine-based:
+3. Coroutine-based - Single Service:
 ```csharp
 StartCoroutine(locator.GetServiceCoroutine<IMyService>(service => {
-    // Use the service
+    service.DoSomething();
 }));
+
 ```
 
-4. Immediate (try-get):
+4. Immediate (Try-Get) - Single Service
 ```csharp
 if (locator.TryGetService<IMyService>(out var myService))
 {
-    // Use the service
+    myService.DoSomething();
 }
+
+```
+
+### Retrieving Multiple Services
+
+You can retrieve multiple services simultaneously using GetServicesAsync or GetService. This reduces code verbosity and ensures all services are available before proceeding.
+
+1. Async/Await - Multiple Services (Supports upto 6 services)
+#### Retrieving Two Services:
+```csharp
+var (myService, anotherService) = await locator.GetServicesAsync<IMyService, IAnotherService>();
+
+myService.DoSomething();
+anotherService.DoAnotherThing();
+```
+#### Retrieving Three Services:
+```csharp
+var (myService, anotherService, thirdService) = await locator.GetServicesAsync<IMyService, IAnotherService, IThirdService>();
+
+myService.DoSomething();
+anotherService.DoAnotherThing();
+thirdService.DoThirdThing();
+```
+
+2. Promise-based - Multiple Services (Supports upto 6 services)
+#### Retrieving Two Services:
+```csharp
+locator.GetService<IMyService, IAnotherService>()
+    .Then(services => {
+        var myService = services.Item1;
+        var anotherService = services.Item2;
+
+        myService.DoSomething();
+        anotherService.DoAnotherThing();
+    })
+    .Catch(ex => {
+        Debug.LogError($"Failed to get services: {ex.Message}");
+    });
+```
+#### Retrieving Three Services:
+```csharp
+locator.GetService<IMyService, IAnotherService, IThirdService>()
+    .Then(services => {
+        var myService = services.Item1;
+        var anotherService = services.Item2;
+        var thirdService = services.Item3;
+
+        myService.DoSomething();
+        anotherService.DoAnotherThing();
+        thirdService.DoThirdThing();
+    })
+    .Catch(ex => {
+        Debug.LogError($"Failed to get services: {ex.Message}");
+    });
+
 ```
 
 ### Unregistering Services
@@ -82,15 +151,31 @@ locator.Unregister<IMyService>();
 For MonoBehaviour-based services, you can use the `MonoService<T>` base class:
 
 ```csharp
+public interface IMyService
+{
+    void DoSomething();
+}
+
 public class MyMonoService : MonoService<IMyService>, IMyService
 {
-    // Service implementation
+    public void DoSomething()
+    {
+        // Service implementation
+    }
+
+    // Optionally override Awake and OnDestroy if needed
+    protected override void Awake()
+    {
+        base.Awake();
+        // Additional initialization
+    }
 }
+
 ```
 
 This will automatically register the service when the MonoBehaviour is created and unregister it when destroyed.
 
-## Advanced Features
+## Additional Features
 
 ### Cleanup
 To clean up all registered services and pending promises:

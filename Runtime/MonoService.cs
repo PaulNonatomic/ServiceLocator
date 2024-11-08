@@ -1,12 +1,10 @@
 ﻿using System;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace Nonatomic.ServiceLocator
 {
 	public abstract class MonoService<T> : MonoBehaviour where T : class
 	{
-		[FormerlySerializedAs("_serviceLocator")] 
 		[SerializeField] protected ServiceLocator ServiceLocator;
 
 		protected virtual void Awake()

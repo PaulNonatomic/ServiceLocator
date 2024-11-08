@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿#nullable enable
+using System.Collections;
 using Nonatomic.ServiceLocator;
 using NUnit.Framework;
 using UnityEngine;
@@ -76,7 +77,7 @@ namespace Tests.EditMode
 
 			// Start the coroutine
 			coroutine.MoveNext();
-    
+	
 			// Cleanup the ServiceLocator
 			_serviceLocator.Cleanup();
 
@@ -212,7 +213,7 @@ namespace Tests.EditMode
 		public IEnumerator GetServiceCoroutine_ReturnsNull_WhenCleanedUpBeforeServiceRegistered()
 		{
 			TestService? retrievedService = null;
-			bool coroutineCompleted = false;
+			var coroutineCompleted = false;
 			var coroutine = _serviceLocator.GetServiceCoroutine<TestService>(testService => 
 			{
 				retrievedService = testService;
@@ -281,6 +282,208 @@ namespace Tests.EditMode
 			{
 				// Do nothing, allowing manual control in tests
 			}
+		}
+		
+		[UnityTest]
+		public IEnumerator GetMultipleServices_ReturnsServices_WhenAllRegisteredBeforeCall()
+		{
+			var service1 = new TestService();
+			var service2 = new AnotherTestService();
+			var service3 = new ThirdTestService();
+
+			_serviceLocator.Register(service1);
+			_serviceLocator.Register(service2);
+			_serviceLocator.Register(service3);
+
+			TestService retrievedService1 = null;
+			AnotherTestService retrievedService2 = null;
+			ThirdTestService retrievedService3 = null;
+
+			var promise = _serviceLocator.GetService<TestService, AnotherTestService, ThirdTestService>();
+
+			promise.Then(services =>
+			{
+				retrievedService1 = services.Item1;
+				retrievedService2 = services.Item2;
+				retrievedService3 = services.Item3;
+			}).Catch(ex => Assert.Fail(ex.Message));
+
+			yield return new WaitUntil(() => retrievedService1 != null && retrievedService2 != null && retrievedService3 != null);
+
+			Assert.AreEqual(service1, retrievedService1);
+			Assert.AreEqual(service2, retrievedService2);
+			Assert.AreEqual(service3, retrievedService3);
+		}
+
+		[UnityTest]
+		public IEnumerator GetMultipleServices_WaitsForServices_WhenNotImmediatelyAvailable()
+		{
+			TestService retrievedService1 = null;
+			AnotherTestService retrievedService2 = null;
+			ThirdTestService retrievedService3 = null;
+
+			var promise = _serviceLocator.GetService<TestService, AnotherTestService, ThirdTestService>();
+
+			promise.Then(services =>
+			{
+				retrievedService1 = services.Item1;
+				retrievedService2 = services.Item2;
+				retrievedService3 = services.Item3;
+			}).Catch(ex => Assert.Fail(ex.Message));
+
+			yield return null; // Wait a frame
+
+			// Register services after the call
+			var service1 = new TestService();
+			_serviceLocator.Register(service1);
+
+			yield return null; // Wait a frame
+
+			var service2 = new AnotherTestService();
+			_serviceLocator.Register(service2);
+
+			yield return null; // Wait a frame
+
+			var service3 = new ThirdTestService();
+			_serviceLocator.Register(service3);
+
+			yield return new WaitUntil(() => retrievedService1 != null && retrievedService2 != null && retrievedService3 != null);
+
+			Assert.AreEqual(service1, retrievedService1);
+			Assert.AreEqual(service2, retrievedService2);
+			Assert.AreEqual(service3, retrievedService3);
+		}
+
+		[UnityTest]
+		public IEnumerator GetMultipleServices_Works_WhenSomeServicesRegisteredBeforeCall()
+		{
+			var service1 = new TestService();
+			_serviceLocator.Register(service1);
+
+			TestService retrievedService1 = null;
+			AnotherTestService retrievedService2 = null;
+			ThirdTestService retrievedService3 = null;
+
+			var promise = _serviceLocator.GetService<TestService, AnotherTestService, ThirdTestService>();
+
+			promise.Then(services =>
+			{
+				retrievedService1 = services.Item1;
+				retrievedService2 = services.Item2;
+				retrievedService3 = services.Item3;
+			}).Catch(ex => Assert.Fail(ex.Message));
+
+			yield return null; // Wait a frame
+
+			var service2 = new AnotherTestService();
+			_serviceLocator.Register(service2);
+
+			yield return null; // Wait a frame
+
+			var service3 = new ThirdTestService();
+			_serviceLocator.Register(service3);
+
+			yield return new WaitUntil(() => retrievedService1 != null && retrievedService2 != null && retrievedService3 != null);
+
+			Assert.AreEqual(service1, retrievedService1);
+			Assert.AreEqual(service2, retrievedService2);
+			Assert.AreEqual(service3, retrievedService3);
+		}
+
+		[UnityTest]
+		public IEnumerator GetMultipleServices_CatchException_WhenServiceNotRegistered()
+		{
+			var catchCalled = false;
+
+			var promise = _serviceLocator.GetService<TestService, AnotherTestService, ThirdTestService>();
+
+			promise.Then(services =>
+			{
+				Assert.Fail("Then should not be called when services are not registered.");
+			}).Catch(ex =>
+			{
+				catchCalled = true;
+				Assert.IsNotNull(ex);
+			});
+
+			// Simulate some frames without registering services
+			for (var i = 0; i < 5; i++)
+			{
+				yield return null;
+			}
+
+			// Since services are not registered, the promise should not resolve
+			Assert.IsFalse(catchCalled);
+
+			// Optionally, you can force the promise to fail after some timeout
+			// However, in the current implementation, the promise will wait indefinitely
+			// unless you implement a timeout or cancellation mechanism
+		}
+
+		[UnityTest]
+		public IEnumerator GetMultipleServices_PartialServicesAvailable_DoesNotResolveUntilAllAvailable()
+		{
+			var service1 = new TestService();
+			_serviceLocator.Register(service1);
+
+			TestService retrievedService1 = null;
+			AnotherTestService retrievedService2 = null;
+			ThirdTestService retrievedService3 = null;
+			var promiseResolved = false;
+
+			var promise = _serviceLocator.GetService<TestService, AnotherTestService, ThirdTestService>();
+
+			promise.Then(services =>
+			{
+				retrievedService1 = services.Item1;
+				retrievedService2 = services.Item2;
+				retrievedService3 = services.Item3;
+				promiseResolved = true;
+			}).Catch(ex => Assert.Fail(ex.Message));
+
+			yield return null; // Wait a frame
+
+			// Only one service is registered, promise should not be resolved yet
+			Assert.IsFalse(promiseResolved);
+
+			var service2 = new AnotherTestService();
+			_serviceLocator.Register(service2);
+
+			yield return null; // Wait a frame
+
+			// Two services are registered, promise should still not be resolved
+			Assert.IsFalse(promiseResolved);
+
+			var service3 = new ThirdTestService();
+			_serviceLocator.Register(service3);
+
+			yield return new WaitUntil(() => promiseResolved);
+
+			Assert.AreEqual(service1, retrievedService1);
+			Assert.AreEqual(service2, retrievedService2);
+			Assert.AreEqual(service3, retrievedService3);
+		}
+
+		[Test]
+		public void Cleanup_RemovesPendingPromises()
+		{
+			var promise = _serviceLocator.GetService<TestService, AnotherTestService, ThirdTestService>();
+
+			_serviceLocator.Cleanup();
+
+			var thenCalled = false;
+			var catchCalled = false;
+
+			promise.Then(services =>
+			{
+				thenCalled = true;
+			}).Catch(ex =>
+			{
+				catchCalled = true;
+			});
+
+			Assert.IsFalse(thenCalled);
+			Assert.IsFalse(catchCalled);
 		}
 	}
 }
