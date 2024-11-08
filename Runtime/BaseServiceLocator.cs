@@ -100,6 +100,86 @@ namespace Nonatomic.ServiceLocator
 
 			return (T)await taskCompletion.Task;
 		}
+		
+		public virtual async Task<(T1, T2)> GetServicesAsync<T1, T2>()
+			where T1 : class
+			where T2 : class
+		{
+			var task1 = GetServiceAsync<T1>();
+			var task2 = GetServiceAsync<T2>();
+
+			await Task.WhenAll(task1, task2);
+
+			return (await task1, await task2);
+		}
+		
+		public virtual async Task<(T1, T2, T3)> GetServicesAsync<T1, T2, T3>()
+			where T1 : class
+			where T2 : class
+			where T3 : class
+		{
+			var task1 = GetServiceAsync<T1>();
+			var task2 = GetServiceAsync<T2>();
+			var task3 = GetServiceAsync<T3>();
+
+			await Task.WhenAll(task1, task2, task3);
+
+			return (await task1, await task2, await task3);
+		}
+		
+		public virtual async Task<(T1, T2, T3, T4)> GetServicesAsync<T1, T2, T3, T4>()
+			where T1 : class
+			where T2 : class
+			where T3 : class
+			where T4 : class
+		{
+			var task1 = GetServiceAsync<T1>();
+			var task2 = GetServiceAsync<T2>();
+			var task3 = GetServiceAsync<T3>();
+			var task4 = GetServiceAsync<T4>();
+
+			await Task.WhenAll(task1, task2, task3, task4);
+
+			return (await task1, await task2, await task3, await task4);
+		}
+		
+		public virtual async Task<(T1, T2, T3, T4, T5)> GetServicesAsync<T1, T2, T3, T4, T5>()
+			where T1 : class
+			where T2 : class
+			where T3 : class
+			where T4 : class
+			where T5 : class
+		{
+			var task1 = GetServiceAsync<T1>();
+			var task2 = GetServiceAsync<T2>();
+			var task3 = GetServiceAsync<T3>();
+			var task4 = GetServiceAsync<T4>();
+			var task5 = GetServiceAsync<T5>();
+
+			await Task.WhenAll(task1, task2, task3, task4, task5);
+
+			return (await task1, await task2, await task3, await task4, await task5);
+		}
+		
+		public virtual async Task<(T1, T2, T3, T4, T5, T6)> GetServicesAsync<T1, T2, T3, T4, T5, T6>()
+			where T1 : class
+			where T2 : class
+			where T3 : class
+			where T4 : class
+			where T5 : class
+			where T6 : class
+		{
+			var task1 = GetServiceAsync<T1>();
+			var task2 = GetServiceAsync<T2>();
+			var task3 = GetServiceAsync<T3>();
+			var task4 = GetServiceAsync<T4>();
+			var task5 = GetServiceAsync<T5>();
+			var task6 = GetServiceAsync<T6>();
+
+			await Task.WhenAll(task1, task2, task3, task4, task5, task6);
+
+			return (await task1, await task2, await task3, await task4, await task5, await task6);
+		}
 
 		/// <summary>
 		/// Attempts to retrieve a service of the specified type.
@@ -201,6 +281,51 @@ namespace Nonatomic.ServiceLocator
 			}
 
 			return promise;
+		}
+		
+		public virtual IServicePromise<(T1, T2)> GetService<T1, T2>()
+			where T1 : class
+			where T2 : class
+		{
+			return ServicePromiseCombiner.CombinePromises(GetService<T1>(), GetService<T2>());
+		}
+
+		public virtual IServicePromise<(T1, T2, T3)> GetService<T1, T2, T3>()
+			where T1 : class
+			where T2 : class
+			where T3 : class
+		{
+			return ServicePromiseCombiner.CombinePromises(GetService<T1>(), GetService<T2>(), GetService<T3>());
+		}
+		
+		public virtual IServicePromise<(T1, T2, T3, T4)> GetService<T1, T2, T3, T4>()
+			where T1 : class
+			where T2 : class
+			where T3 : class
+			where T4 : class
+		{
+			return ServicePromiseCombiner.CombinePromises(GetService<T1>(), GetService<T2>(), GetService<T3>(), GetService<T4>());
+		}
+		
+		public virtual IServicePromise<(T1, T2, T3, T4, T5)> GetService<T1, T2, T3, T4, T5>()
+			where T1 : class
+			where T2 : class
+			where T3 : class
+			where T4 : class
+			where T5 : class
+		{
+			return ServicePromiseCombiner.CombinePromises(GetService<T1>(), GetService<T2>(), GetService<T3>(), GetService<T4>(), GetService<T5>());
+		}
+		
+		public virtual IServicePromise<(T1, T2, T3, T4, T5, T6)> GetService<T1, T2, T3, T4, T5, T6>()
+			where T1 : class
+			where T2 : class
+			where T3 : class
+			where T4 : class
+			where T5 : class
+			where T6 : class
+		{
+			return ServicePromiseCombiner.CombinePromises(GetService<T1>(), GetService<T2>(), GetService<T3>(), GetService<T4>(), GetService<T5>(), GetService<T6>());
 		}
 
 		/// <summary>

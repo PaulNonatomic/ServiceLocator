@@ -35,6 +35,31 @@ namespace Nonatomic.ServiceLocator
 			return resultPromise;
 		}
 		
+		public ServicePromise<T> Then(Action<T> onFulfilled)
+		{
+			var resultPromise = new ServicePromise<T>();
+			_taskCompletion.Task.ContinueWith(task =>
+			{
+				if (task.IsCompletedSuccessfully)
+				{
+					try
+					{
+						onFulfilled(task.Result);
+						resultPromise.Resolve(task.Result);
+					}
+					catch (Exception ex)
+					{
+						resultPromise.Reject(ex);
+					}
+				}
+				else
+				{
+					resultPromise.Reject(task.Exception ?? new Exception("Task failed."));
+				}
+			});
+			return resultPromise;
+		}
+		
 		public ServicePromise<T> Catch(Action<Exception> onRejected)
 		{
 			var resultPromise = new ServicePromise<T>();

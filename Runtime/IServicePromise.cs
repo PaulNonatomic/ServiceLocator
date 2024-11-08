@@ -8,6 +8,7 @@ namespace Nonatomic.ServiceLocator
 		void Reject(Exception ex);
 
 		ServicePromise<TResult> Then<TResult>(Func<T, TResult> onFulfilled);
+		ServicePromise<T> Then(Action<T> onFulfilled);
 		ServicePromise<T> Catch(Action<Exception> onRejected);
 	}
 }
