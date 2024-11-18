@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.4.2] - Nov 18, 2024
+- Removed the initialize on load attribute from the Reference Fixer as it was slowwwwwww.
+
+## [0.4.1] - Nov 08, 2024
+- Added a tool to fix missing references to the ServiceLocator. This comes off the back of realising that
+the property drawer should probably not be assigning properties and can cause serialization issues. 
+
 ## [0.4.0] - Nov 07, 2024
 - Package has been battle tested and is now considered stable so i've dropped the beta tag
 - Tweaked support for nullable types in the GetService method
