@@ -7,15 +7,10 @@ namespace Nonatomic.ServiceLocator.Editor.Utils
 	using UnityEditor.SceneManagement;
 	using System.Linq;
 
-	[InitializeOnLoad]
 	public static class ServiceLocatorReferenceFixer
 	{
-		static ServiceLocatorReferenceFixer()
-		{
-			EditorApplication.delayCall += FixServiceLocatorReferences;
-		}
-
-		private static void FixServiceLocatorReferences()
+		[MenuItem("Tools/Service Locator/Fix ServiceLocator References", false)]
+		public static void FixServiceLocatorReferences()
 		{
 			// Delay the execution to ensure everything is loaded
 			EditorApplication.delayCall -= FixServiceLocatorReferences;
@@ -37,7 +32,7 @@ namespace Nonatomic.ServiceLocator.Editor.Utils
 			// Optionally, fix references in all assets
 			FixReferencesInAllAssets(serviceLocator);
 		}
-
+		
 		private static void FixReferencesInOpenScenes(ServiceLocator serviceLocator)
 		{
 			for (var i = 0; i < SceneManager.sceneCount; i++)
@@ -57,7 +52,8 @@ namespace Nonatomic.ServiceLocator.Editor.Utils
 						if (!component) continue;
 						var so = new SerializedObject(component);
 						var sp = so.GetIterator();
-
+						Debug.LogWarning($"Checked:{sp.name} in component:{component.name}");
+						
 						while (sp.NextVisible(true))
 						{
 							if (sp.propertyType != SerializedPropertyType.ObjectReference ||
@@ -96,6 +92,7 @@ namespace Nonatomic.ServiceLocator.Editor.Utils
 
 				while (sp.NextVisible(true))
 				{
+					Debug.LogWarning($"Checked:{sp.name} in asset:{asset.name}");
 					if (sp.propertyType != SerializedPropertyType.ObjectReference ||
 						sp.objectReferenceValue ||
 						sp.type != "PPtr<ServiceLocator>") continue;
