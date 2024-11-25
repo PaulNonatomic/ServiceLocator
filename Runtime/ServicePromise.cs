@@ -14,6 +14,7 @@ namespace Nonatomic.ServiceLocator
 		public void Resolve(T value)
 		{
 			if (_isResolved || _isRejected) return;
+			
 			_result = value;
 			_isResolved = true;
 			_taskCompletion.TrySetResult(value);
@@ -22,6 +23,7 @@ namespace Nonatomic.ServiceLocator
 		public void Reject(Exception ex)
 		{
 			if (_isResolved || _isRejected) return;
+			
 			_error = ex;
 			_isRejected = true;
 			_taskCompletion.TrySetException(ex);
