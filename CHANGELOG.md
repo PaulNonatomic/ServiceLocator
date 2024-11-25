@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.5.0] - Nov 25, 2024
+- BREAKING change to how the ServicePromise resolves. Task.ContinueWith it turns out operates off the main thread which is dangerous for Unity Objects.
+As a solution to this the promise now resolves via the SynchronizationContext, however this means that the promise will not resolve until the next frame.
+As a workaround for this, promises now resolve immediately for registered services. The breaking change here is that ServicePromises retrieved in the Awake method will not resolve
+in time to supply the Start method. However, simply moving the retrieval to the Start method will resolve this issue.
+- Added addition unit tests to ensure the ServicePromise resolves on the main thread
+
 ## [0.4.2] - Nov 18, 2024
 - Removed the initialize on load attribute from the Reference Fixer as it was slowwwwwww.
 

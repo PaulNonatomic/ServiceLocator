@@ -262,23 +262,26 @@ namespace Nonatomic.ServiceLocator
 			if (ServiceMap.TryGetValue(serviceType, out var service))
 			{
 				promise.Resolve((T)service);
+				return promise;
 			}
-			else
-			{
-				if (!PromiseMap.TryGetValue(serviceType, out var taskCompletion))
-				{
-					taskCompletion = new TaskCompletionSource<object>();
-					PromiseMap[serviceType] = taskCompletion;
-				}
 
-				taskCompletion.Task.ContinueWith(task =>
-				{
-					if (task.IsCompletedSuccessfully)
-						promise.Resolve((T)task.Result);
-					else
-						promise.Reject(task.Exception);
-				});
+			if (!PromiseMap.TryGetValue(serviceType, out var taskCompletion))
+			{
+				taskCompletion = new TaskCompletionSource<object>();
+				PromiseMap[serviceType] = taskCompletion;
 			}
+
+			taskCompletion.Task.ContinueWith(task =>
+			{
+				if (task.IsCompletedSuccessfully)
+				{
+					promise.Resolve((T)task.Result);
+				}
+				else
+				{
+					promise.Reject(task.Exception);
+				}
+			});
 
 			return promise;
 		}
