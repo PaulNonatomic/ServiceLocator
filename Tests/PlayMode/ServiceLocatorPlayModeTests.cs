@@ -3,7 +3,6 @@ using Nonatomic.ServiceLocator;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
-using Assert = UnityEngine.Assertions.Assert;
 
 namespace Tests.PlayMode
 {
@@ -51,30 +50,56 @@ namespace Tests.PlayMode
 	[TestFixture]
 	public class ServiceLocatorPlayModeTests
 	{
+		private ServiceLocator _serviceLocator;
+
+		[SetUp]
+		public void Setup()
+		{
+			UnitySynchronizationContext.Initialize();
+			_serviceLocator = ScriptableObject.CreateInstance<ServiceLocator>();
+		}
+		
 		[UnityTest]
 		public IEnumerator ServiceRegisteredInAwake_AvailableInStart()
 		{
-			// // Create an instance of the ServiceLocator (use ScriptableObject.CreateInstance for ScriptableObjects)
-			var serviceLocator = ScriptableObject.CreateInstance<ServiceLocator>();
-			//
-			// // Create a new GameObject with the ServiceUser component
 			var gameObject = new GameObject();
 			var serviceUser = gameObject.AddComponent<ServiceUser>();
-			//
-			// // Initialize the ServiceUser with the created service locator instance
-			serviceUser.Initialize(serviceLocator);
-			//
-			// // Wait for 2 frames to simulate the passage of time for Start method execution
-			// yield return null; // Wait one frame for Awake
-			yield return null; // Wait another frame for Start
-			//
-			// // Now verify that the service was successfully retrieved
+			serviceUser.Initialize(_serviceLocator);
+			
+			yield return null;
+			
 			var retrievedService = serviceUser.GetRetrievedService();
-			//
-			// // Assert that the service is not null, meaning it was retrieved in Start
+			
 			Assert.IsNotNull(retrievedService, "Service should be retrieved in the Start method.");
 			Assert.AreEqual("Hello from TestService!", retrievedService.Message, "Service should contain the correct data.");
 			
+			yield return null;
+		}
+		
+		[UnityTest]
+		public IEnumerator PromiseCallbackRunsOnMainThread()
+		{
+			var mainThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+
+			TestService retrievedService = null;
+			var callbackThreadId = -1;
+			var promise = _serviceLocator.GetService<TestService>();
+
+			promise.Then(service =>
+			{
+				retrievedService = service;
+				callbackThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
+			}).Catch(ex => Assert.Fail(ex.Message));
+
+			yield return null;
+
+			var service = new TestService();
+			_serviceLocator.Register(service);
+
+			yield return new WaitUntil(() => retrievedService != null);
+
+			Assert.AreEqual(mainThreadId, callbackThreadId, "Promise callback did not run on the main thread.");
+
 			yield return null;
 		}
 	}
