@@ -50,25 +50,28 @@ namespace Nonatomic.ServiceLocator
 				resultPromise.Reject(_error);
 				return resultPromise;
 			}
-
+			
 			_taskCompletion.Task.ContinueWith(task =>
 			{
-				if (task.IsCompletedSuccessfully)
+				UnitySynchronizationContext.Context.Post(_ =>
 				{
-					try
+					if (task.IsCompletedSuccessfully)
 					{
-						var result = onFulfilled(task.Result);
-						resultPromise.Resolve(result);
+						try
+						{
+							var result = onFulfilled(task.Result);
+							resultPromise.Resolve(result);
+						}
+						catch (Exception ex)
+						{
+							resultPromise.Reject(ex);
+						}
 					}
-					catch (Exception ex)
+					else
 					{
-						resultPromise.Reject(ex);
+						resultPromise.Reject(task.Exception);
 					}
-				}
-				else
-				{
-					resultPromise.Reject(task.Exception);
-				}
+				}, null);
 			});
 
 			return resultPromise;
@@ -100,22 +103,25 @@ namespace Nonatomic.ServiceLocator
 
 			_taskCompletion.Task.ContinueWith(task =>
 			{
-				if (task.IsCompletedSuccessfully)
+				UnitySynchronizationContext.Context.Post(_ =>
 				{
-					try
+					if (task.IsCompletedSuccessfully)
 					{
-						onFulfilled(task.Result);
-						resultPromise.Resolve(task.Result);
+						try
+						{
+							onFulfilled(task.Result);
+							resultPromise.Resolve(task.Result);
+						}
+						catch (Exception ex)
+						{
+							resultPromise.Reject(ex);
+						}
 					}
-					catch (Exception ex)
+					else
 					{
-						resultPromise.Reject(ex);
+						resultPromise.Reject(task.Exception ?? new Exception("Task failed."));
 					}
-				}
-				else
-				{
-					resultPromise.Reject(task.Exception ?? new Exception("Task failed."));
-				}
+				}, null);
 			});
 
 			return resultPromise;
@@ -147,22 +153,25 @@ namespace Nonatomic.ServiceLocator
 
 			_taskCompletion.Task.ContinueWith(task =>
 			{
-				if (task.IsFaulted)
+				UnitySynchronizationContext.Context.Post(_ =>
 				{
-					try
+					if (task.IsFaulted)
 					{
-						onRejected(task.Exception);
-						resultPromise.Resolve(default);
+						try
+						{
+							onRejected(task.Exception);
+							resultPromise.Resolve(default);
+						}
+						catch (Exception ex)
+						{
+							resultPromise.Reject(ex);
+						}
 					}
-					catch (Exception ex)
+					else
 					{
-						resultPromise.Reject(ex);
+						resultPromise.Resolve(task.Result);
 					}
-				}
-				else
-				{
-					resultPromise.Resolve(task.Result);
-				}
+				}, null);
 			});
 
 			return resultPromise;
