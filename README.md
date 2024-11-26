@@ -147,7 +147,7 @@ To unregister a service:
 locator.Unregister<IMyService>();
 ```
 
-### Automatic Service Registration with MonoService
+### Simplified Service Registration with MonoService
 For MonoBehaviour-based services, you can use the `MonoService<T>` base class:
 
 ```csharp
@@ -166,8 +166,11 @@ public class MyMonoService : MonoService<IMyService>, IMyService
     // Optionally override Awake and OnDestroy if needed
     protected override void Awake()
     {
-        base.Awake();
-        // Additional initialization
+        base.Awake();        
+        // Additional initialization...
+        
+        // Indicate that the service is ready by calling the ServiceReady method. This will now register the service and fullfill any pending promises.
+        ServiceReady();
     }
 }
 
