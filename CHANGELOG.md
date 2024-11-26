@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.6.0] - Nov 26, 2024
+- BREAKING change. Previously all services were registered in the Awake method but must now be manually registered by calling the ServiceReady method. This is to indicate to
+developers that service setup logic should be ran before the service is registered.
+
 ## [0.5.0] - Nov 25, 2024
 - BREAKING change to how the ServicePromise resolves. Task.ContinueWith it turns out operates off the main thread which is dangerous for Unity Objects.
 As a solution to this the promise now resolves via the SynchronizationContext, however this means that the promise will not resolve until the next frame.
