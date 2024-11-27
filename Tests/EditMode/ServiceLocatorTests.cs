@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using System;
 using System.Collections;
 using Nonatomic.ServiceLocator;
 using NUnit.Framework;
@@ -16,6 +17,7 @@ namespace Tests.EditMode
 		[SetUp]
 		public void Setup()
 		{
+			UnitySynchronizationContext.Initialize();
 			_serviceLocator = ScriptableObject.CreateInstance<TestServiceLocator>();
 		}
 
@@ -484,6 +486,37 @@ namespace Tests.EditMode
 
 			Assert.IsFalse(thenCalled);
 			Assert.IsFalse(catchCalled);
+		}
+		
+		/// <summary>
+		/// Tests that exceptions thrown inside a Then callback are correctly surfaced to the Catch callback.
+		/// </summary>
+		[UnityTest]
+		public IEnumerator ServicePromise_ExceptionThrownInThen_IsCaughtInCatch()
+		{
+			var testService = new TestService();
+			_serviceLocator.Register(testService);
+
+			Exception caughtException = null;
+			var expectedException = new InvalidOperationException("Test exception from Then.");
+
+			var promise = _serviceLocator.GetService<TestService>();
+			promise
+				.Then(service =>
+				{
+					throw expectedException;
+				})
+				.Catch(ex =>
+				{
+					caughtException = ex;
+				});
+
+			// Wait until the Catch callback is invoked
+			yield return new WaitUntil(() => caughtException != null);
+
+			// Assert
+			Assert.IsNotNull(caughtException, "Exception was not caught in Catch.");
+			Assert.AreEqual(expectedException, caughtException, "Caught exception does not match the expected exception.");
 		}
 	}
 }
