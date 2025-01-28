@@ -1,4 +1,6 @@
 ﻿using System.Collections;
+using System.Linq;
+using System.Threading.Tasks;
 using Nonatomic.ServiceLocator;
 using NUnit.Framework;
 using UnityEngine;
@@ -101,6 +103,28 @@ namespace Tests.PlayMode
 			Assert.AreEqual(mainThreadId, callbackThreadId, "Promise callback did not run on the main thread.");
 
 			yield return null;
+		}
+		
+		[UnityTest]
+		public IEnumerator HighConcurrency_StressTest()
+		{
+			const int iterations = 1000;
+			var tasks = new Task[iterations];
+
+			for (var i = 0; i < iterations; i++)
+			{
+				tasks[i] = _serviceLocator.GetServiceAsync<TestService>();
+			}
+
+			yield return new WaitForSeconds(0.5f);
+			_serviceLocator.Register(new TestService());
+	
+			yield return new WaitUntil(() => tasks.All(t => t.IsCompleted));
+	
+			foreach (var task in tasks.Cast<Task<TestService>>())
+			{
+				Assert.IsNotNull(task.Result);
+			}
 		}
 	}
 }

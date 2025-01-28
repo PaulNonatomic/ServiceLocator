@@ -16,25 +16,25 @@ namespace Nonatomic.ServiceLocator
 	{
 		public bool IsInitialized { get; protected  set; } = false;
 
-		// Stores registered services, mapping their types to instances.
 		protected  readonly Dictionary<Type, object> ServiceMap = new();
-
-		// Stores promises for services that haven't been registered yet.
 		protected  readonly Dictionary<Type, TaskCompletionSource<object>> PromiseMap = new();
-		
-		// Store coroutines created to wait for services not yet registered.
 		protected readonly List<(Type, Action<object>)> PendingCoroutines = new();
+		protected readonly object Lock = new();
 
 		/// <summary>
 		/// Manually cleans up all unfulfilled promises.
 		/// </summary>
 		public virtual void CleanupPromises()
 		{
-			foreach (var promise in PromiseMap.Values)
+			lock (Lock)
 			{
-				promise.TrySetCanceled();
+				foreach (var promise in PromiseMap.Values)
+				{
+					promise.TrySetCanceled();
+				}
+
+				PromiseMap.Clear();
 			}
-			PromiseMap.Clear();
 		}
 
 
@@ -48,22 +48,30 @@ namespace Nonatomic.ServiceLocator
 		/// </remarks>
 		public virtual void Register<T>(T service) where T : class
 		{
-			var serviceType = typeof(T);
-			ServiceMap[serviceType] = service;
-
-			if (PromiseMap.TryGetValue(serviceType, out var taskCompletion))
+			lock (Lock)
 			{
-				taskCompletion.TrySetResult(service);
-				PromiseMap.Remove(serviceType);
-			}
+				if (service == null)
+				{
+					throw new ArgumentNullException("service", "Cannot register a null service.");
+				}
+				
+				var serviceType = typeof(T);
+				ServiceMap[serviceType] = service;
 
-			// Resolve any pending coroutines for this service type
-			var pendingCoroutines = PendingCoroutines.FindAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
-			foreach (var (_, callback) in pendingCoroutines)
-			{
-				callback(service);
+				if (PromiseMap.TryGetValue(serviceType, out var taskCompletion))
+				{
+					taskCompletion.TrySetResult(service);
+					PromiseMap.Remove(serviceType);
+				}
+
+				// Resolve any pending coroutines for this service type
+				var pendingCoroutines = PendingCoroutines.FindAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
+				foreach (var (_, callback) in pendingCoroutines)
+				{
+					callback(service);
+				}
+				PendingCoroutines.RemoveAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
 			}
-			PendingCoroutines.RemoveAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
 		}
 
 		/// <summary>
@@ -75,7 +83,10 @@ namespace Nonatomic.ServiceLocator
 		/// </remarks>
 		public virtual void Unregister<T>() where T : class
 		{
-			ServiceMap.Remove(typeof(T));
+			lock (Lock)
+			{
+				ServiceMap.Remove(typeof(T));
+			}
 		}
 
 		/// <summary>
@@ -89,16 +100,22 @@ namespace Nonatomic.ServiceLocator
 		public virtual async Task<T> GetServiceAsync<T>() where T : class
 		{
 			var serviceType = typeof(T);
+			TaskCompletionSource<object>? taskCompletion = null;
 
-			if (ServiceMap.TryGetValue(serviceType, out var service)) return (T)service;
-
-			if (!PromiseMap.TryGetValue(serviceType, out var taskCompletion))
+			lock (Lock)
 			{
-				taskCompletion = new TaskCompletionSource<object>();
-				PromiseMap[serviceType] = taskCompletion;
+				if (ServiceMap.TryGetValue(serviceType, out var service)) 
+					return (T)service;
+
+				if (!PromiseMap.TryGetValue(serviceType, out taskCompletion))
+				{
+					taskCompletion = new TaskCompletionSource<object>();
+					PromiseMap[serviceType] = taskCompletion;
+				}
 			}
 
-			return (T)await taskCompletion.Task;
+			// Now safely await outside the lock
+			return (T)await taskCompletion!.Task;
 		}
 		
 		public virtual async Task<(T1, T2)> GetServicesAsync<T1, T2>()
@@ -191,13 +208,16 @@ namespace Nonatomic.ServiceLocator
 		{
 			service = null;
 
-			if (ServiceMap.TryGetValue(typeof(T), out var result) && result is T typedService)
+			lock (Lock)
 			{
-				service = typedService;
-				return true;
-			}
+				if (ServiceMap.TryGetValue(typeof(T), out var result) && result is T typedService)
+				{
+					service = typedService;
+					return true;
+				}
 
-			return false;
+				return false;
+			}
 		}
 
 		/// <summary>
@@ -209,28 +229,33 @@ namespace Nonatomic.ServiceLocator
 		public virtual IEnumerator GetServiceCoroutine<T>(Action<T?> callback) where T : class
 		{
 			var serviceType = typeof(T);
+			var isPending = false;
+			Action<object?> wrappedCallback = null!;
 
-			// Check if the service is already available
-			if (ServiceMap.TryGetValue(serviceType, out var service))
+			lock (Lock)
 			{
-				callback((T)service);
-				yield break;
-			}
-
-			// Create a pending coroutine entry
-			var pendingCoroutine = (serviceType, new Action<object?>(obj => callback(obj as T)));
-			PendingCoroutines.Add(pendingCoroutine);
-
-			while (PendingCoroutines.Count > 0)
-			{
-				// Check if the service has been registered during this iteration
-				if (ServiceMap.TryGetValue(serviceType, out service))
+				if (ServiceMap.TryGetValue(serviceType, out var service))
 				{
-					PendingCoroutines.Remove(pendingCoroutine);
 					callback((T)service);
 					yield break;
 				}
 
+				wrappedCallback = obj => callback(obj as T);
+				PendingCoroutines.Add((serviceType, wrappedCallback));
+				isPending = true;
+			}
+
+			while (isPending)
+			{
+				lock (Lock)
+				{
+					if (ServiceMap.TryGetValue(serviceType, out var service))
+					{
+						PendingCoroutines.RemoveAll(x => x.Item1 == serviceType && x.Item2 == wrappedCallback);
+						callback((T)service);
+						yield break;
+					}
+				}
 				yield return null;
 			}
 		}
@@ -270,6 +295,8 @@ namespace Nonatomic.ServiceLocator
 				taskCompletion = new TaskCompletionSource<object>();
 				PromiseMap[serviceType] = taskCompletion;
 			}
+			
+			promise.BindTo(taskCompletion);
 
 			taskCompletion.Task.ContinueWith(task =>
 			{
@@ -279,7 +306,7 @@ namespace Nonatomic.ServiceLocator
 				}
 				else
 				{
-					promise.Reject(task.Exception);
+					promise.Reject(task.Exception ?? new Exception("Unknown error"));
 				}
 			});
 
@@ -336,9 +363,21 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		public virtual void Cleanup()
 		{
-			ServiceMap.Clear();
-			CleanupPromises();
-			CancelPendingCoroutines();
+			lock (Lock)
+			{
+				//Dispose all disposable services
+				foreach(var service in ServiceMap.Values)
+				{
+					if (service is IDisposable disposable)
+					{
+						disposable.Dispose();
+					}
+				}
+				
+				ServiceMap.Clear();
+				CleanupPromises();
+				CancelPendingCoroutines();
+			}
 		}
 
 		/// <summary>
@@ -386,11 +425,15 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		protected virtual void CancelPendingCoroutines()
 		{
-			foreach (var (_, callback) in PendingCoroutines)
+			lock (Lock)
 			{
-				callback(null!);
+				foreach (var (_, callback) in PendingCoroutines)
+				{
+					callback(null!);
+				}
+
+				PendingCoroutines.Clear();
 			}
-			PendingCoroutines.Clear();
 		}
 
 		/// <summary>
@@ -398,8 +441,11 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		protected virtual void OnSceneUnloaded(Scene scene)
 		{
-			CleanupPromises();
-			CancelPendingCoroutines();
+			lock (Lock)
+			{
+				CleanupPromises();
+				CancelPendingCoroutines();
+			}
 		}
 	}
 }
