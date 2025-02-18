@@ -117,7 +117,13 @@ namespace Nonatomic.ServiceLocator
 			// Now safely await outside the lock
 			return (T)await taskCompletion!.Task;
 		}
-		
+
+		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
+		public virtual Task<(T1, T2)> GetServiceAsync<T1, T2>()
+			where T1 : class
+			where T2 : class 
+			=> GetServicesAsync<T1, T2>();
+
 		public virtual async Task<(T1, T2)> GetServicesAsync<T1, T2>()
 			where T1 : class
 			where T2 : class
@@ -129,6 +135,13 @@ namespace Nonatomic.ServiceLocator
 
 			return (await task1, await task2);
 		}
+		
+		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
+		public virtual Task<(T1, T2, T3)> GetServiceAsync<T1, T2, T3>()
+			where T1 : class
+			where T2 : class 
+			where T3 : class 
+			=> GetServicesAsync<T1, T2, T3>();
 		
 		public virtual async Task<(T1, T2, T3)> GetServicesAsync<T1, T2, T3>()
 			where T1 : class
@@ -143,6 +156,14 @@ namespace Nonatomic.ServiceLocator
 
 			return (await task1, await task2, await task3);
 		}
+		
+		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
+		public virtual Task<(T1, T2, T3, T4)> GetServiceAsync<T1, T2, T3, T4>()
+			where T1 : class
+			where T2 : class 
+			where T3 : class 
+			where T4 : class 
+			=> GetServicesAsync<T1, T2, T3, T4>();
 		
 		public virtual async Task<(T1, T2, T3, T4)> GetServicesAsync<T1, T2, T3, T4>()
 			where T1 : class
@@ -159,6 +180,15 @@ namespace Nonatomic.ServiceLocator
 
 			return (await task1, await task2, await task3, await task4);
 		}
+		
+		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
+		public virtual Task<(T1, T2, T3, T4, T5)> GetServiceAsync<T1, T2, T3, T4, T5>()
+			where T1 : class
+			where T2 : class 
+			where T3 : class 
+			where T4 : class 
+			where T5 : class 
+			=> GetServicesAsync<T1, T2, T3, T4, T5>();
 		
 		public virtual async Task<(T1, T2, T3, T4, T5)> GetServicesAsync<T1, T2, T3, T4, T5>()
 			where T1 : class
@@ -177,6 +207,16 @@ namespace Nonatomic.ServiceLocator
 
 			return (await task1, await task2, await task3, await task4, await task5);
 		}
+		
+		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
+		public virtual Task<(T1, T2, T3, T4, T5, T6)> GetServiceAsync<T1, T2, T3, T4, T5, T6>()
+			where T1 : class
+			where T2 : class 
+			where T3 : class 
+			where T4 : class 
+			where T5 : class 
+			where T6 : class 
+			=> GetServicesAsync<T1, T2, T3, T4, T5, T6>();
 		
 		public virtual async Task<(T1, T2, T3, T4, T5, T6)> GetServicesAsync<T1, T2, T3, T4, T5, T6>()
 			where T1 : class
