@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.6.1] - Feb 18, 2025
+- Added syntactic sugar to allow the simple addition of additional services requests through GetServiceAsync without adding an s, sounds silly, but it gets annoying quick
+
 ## [0.6.0] - Nov 26, 2024
 - BREAKING change. Previously all services were registered in the Awake method but must now be manually registered by calling the ServiceReady method. This is to indicate to
 developers that service setup logic should be ran before the service is registered.
