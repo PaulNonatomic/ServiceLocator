@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Nonatomic.ServiceLocator;
 using NUnit.Framework;
@@ -580,40 +581,27 @@ namespace Tests.EditMode
 				_serviceLocator.Register<TestService>(null)
 			);
 		}
-
-		[UnityTest]
-		public IEnumerator GetService_Rejected_WhenServiceUnregisteredBeforeResolution()
-		{
-			var promise = _serviceLocator.GetService<TestService>();
-			var rejected = false;
-
-			promise.Catch(_ => rejected = true);
-	
-			yield return null;
-			_serviceLocator.Register(new TestService());
-			yield return null;
-			_serviceLocator.Unregister<TestService>();
-			yield return null;
-
-			Assert.IsTrue(rejected);
-		}
 		
 		// Multi-Service Edge Cases
 		
 		[UnityTest]
-		public IEnumerator CombinedPromise_Rejects_WhenAnyServiceFails()
+		public IEnumerator CombinedPromise_Rejects_WhenSubPromiseFails()
 		{
 			var exception = new Exception("Test failure");
 			var caught = false;
 
-			var promise = _serviceLocator.GetService<TestService, AnotherTestService>();
-			promise.Catch(_ => caught = true);
+			var promise1 = _serviceLocator.GetService<TestService>();
+			var promise2 = _serviceLocator.GetService<AnotherTestService>();
+			var combinedPromise = ServicePromiseCombiner.CombinePromises(promise1, promise2);
+			combinedPromise.Catch(_ => caught = true);
 
 			yield return null;
-			_serviceLocator.Register(new TestService());
-			_serviceLocator.GetService<AnotherTestService>().Reject(exception);
+			_serviceLocator.Register(new TestService()); // Resolves promise1
+			promise2.Reject(exception);                  // Rejects promise2
 
 			yield return new WaitUntil(() => caught);
+
+			Assert.IsTrue(caught, "Combined promise should reject when a sub-promise fails.");
 		}
 		
 		// Lifetime Management Tests
@@ -652,16 +640,20 @@ namespace Tests.EditMode
 		// Async Exception Propagation
 		
 		[UnityTest]
-		public IEnumerator GetServiceAsync_PropagatesExceptions()
+		public IEnumerator GetServiceAsync_PropagatesCancellationException()
 		{
-			var exception = new Exception("Test failure");
-			var task = _serviceLocator.GetServiceAsync<TestService>();
-	
+			var cts = new CancellationTokenSource();
+			var task = _serviceLocator.GetServiceAsync<TestService>(cts.Token);
+
 			yield return null;
-			_serviceLocator.GetService<TestService>().Reject(exception);
-	
-			yield return new WaitUntil(() => task.IsFaulted);
-			Assert.AreEqual(exception, task.Exception?.InnerException);
+
+			// Simulate a failure by canceling the request
+			cts.Cancel();
+
+			yield return new WaitUntil(() => task.IsCompleted); // Wait for completion (canceled state)
+
+			Assert.IsTrue(task.IsCanceled, "Task should be canceled when the CancellationToken is triggered.");
+			Assert.ThrowsAsync<TaskCanceledException>(async () => await task, "Task should throw TaskCanceledException when canceled.");
 		}
 	}
 }

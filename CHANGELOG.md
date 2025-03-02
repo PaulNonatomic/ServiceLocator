@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.7.0] - Mar 02, 2025
+- Added support for Cancellation Tokens to the GetServiceAsync method
+- Added support for RejectService method to allow for the rejection of a service promises and Tasks with propogated exceptions
+
 ## [0.6.1] - Feb 18, 2025
 - Added syntactic sugar to allow the simple addition of additional services requests through GetServiceAsync without adding an s, sounds silly, but it gets annoying quick
 

@@ -31,10 +31,13 @@ namespace Nonatomic.ServiceLocator
 		{
 			if (_isResolved || _isRejected) return;
 			
-			_error = ex;
+			// Flatten AggregateException to its innermost exception if applicable
+			var innerEx = ex is AggregateException agg ? agg.Flatten().InnerException : ex;
+			
+			_error = innerEx;
 			_isRejected = true;
-			_taskCompletion.TrySetException(ex);
-			_innerTaskCompletion?.TrySetException(ex); 
+			_taskCompletion.TrySetException(innerEx);
+			_innerTaskCompletion?.TrySetException(innerEx); 
 		}
 
 		public ServicePromise<TResult> Then<TResult>(Func<T, TResult> onFulfilled)

@@ -7,26 +7,23 @@ ServiceLocator is a Unity package that provides a flexible and efficient way to 
 To install ServiceLocator in your Unity project, add the package from the git URL: https://github.com/PaulNonatomic/ServiceLocator.git using the Unity package manager.
 
 ## Key Features
-- ScriptableObject-based implementation for easy integration with Unity
-- Support for synchronous and asynchronous service retrieval
-- Promise-based service access
-- Coroutine-based service retrieval
-- Automatic service registration and unregistration for MonoBehaviours
-- Ability to retrieve multiple services simultaneously.
+- `ScriptableObject`-based implementation for seamless Unity integration
+- Synchronous, asynchronous, and promise-based service retrieval
+- Coroutine support for service access
+- Multi-service retrieval in a single call
+- Cancellation support with `CancellationToken`, including `MonoBehaviour.destroyCancellationToken`
+- Robust error handling and service rejection mechanisms
 
 ## Usage
 
 ### Creating a ServiceLocator Asset
+A `DefaultServiceLocator` asset is included in the package for immediate use. The `ServiceLocator` property drawer automatically populates with the first `ServiceLocator` asset found in the project. To create a custom instance:
 
-Note there is a DefaultServiceLocator asset included in the package should you wish to use this.<br>
-The ServiceLocator property drawer will self populate with the first ServiceLocator asset it finds in the project.<br>
-However should you wish to create a new instance of the ServiceLocator then...
-
-1. In the Unity Editor, right-click in the Project panel.
-2. Navigate to Create -> ServiceLocator to create a new ServiceLocator asset.
+1. Right-click in the Unity Editor's Project panel.
+2. Navigate to `Create -> ServiceLocator` to create a new `ServiceLocator` asset.
 
 ### Registering Services
-To register a service with the ServiceLocator, use the `Register<T>` method:
+Register services using the `Register<T>` method:
 
 ```csharp
 public interface IMyService
@@ -38,18 +35,18 @@ public class MyService : IMyService
 {
     public void DoSomething()
     {
-        // Service implementation
+        Debug.Log("Doing something!");
     }
 }
 
-// Get your ServiceLocator instance
-ServiceLocator locator = // ... obtain reference to your ServiceLocator instance
+// Obtain your ServiceLocator instance
+ServiceLocator locator = // ... reference to your ServiceLocator asset
 locator.Register<IMyService>(new MyService());
 
 ```
 
 ### Accessing Services
-ServiceLocator provides multiple ways to retrieve services:
+ServiceLocator offers multiple retrieval methods:
 
 1. Async/Await - Single Service:
 ```csharp
@@ -60,19 +57,15 @@ myService.DoSomething();
 2. Promise-based - Single Service:
 ```csharp
 locator.GetService<IMyService>()
-    .Then(service => {
-        service.DoSomething();
-    })
-    .Catch(ex => {
-        Debug.LogError($"Failed to get service: {ex.Message}");
-    });
-
+    .Then(service => service.DoSomething())
+    .Catch(ex => Debug.LogError($"Failed to get service: {ex.Message}"));
 ```
 
 3. Coroutine-based - Single Service:
 ```csharp
-StartCoroutine(locator.GetServiceCoroutine<IMyService>(service => {
-    service.DoSomething();
+StartCoroutine(locator.GetServiceCoroutine<IMyService>(service => 
+{
+    service?.DoSomething();
 }));
 
 ```
@@ -83,72 +76,39 @@ if (locator.TryGetService<IMyService>(out var myService))
 {
     myService.DoSomething();
 }
-
 ```
 
 ### Retrieving Multiple Services
 
-You can retrieve multiple services simultaneously using GetServicesAsync or GetService. This reduces code verbosity and ensures all services are available before proceeding.
+Retrieve multiple services in one call (up to 6 supported):
 
-1. Async/Await - Multiple Services (Supports upto 6 services)
-#### Retrieving Two Services:
+1. Async/Await - Two Services
 ```csharp
 var (myService, anotherService) = await locator.GetServicesAsync<IMyService, IAnotherService>();
-
 myService.DoSomething();
 anotherService.DoAnotherThing();
 ```
-#### Retrieving Three Services:
-```csharp
-var (myService, anotherService, thirdService) = await locator.GetServicesAsync<IMyService, IAnotherService, IThirdService>();
-
-myService.DoSomething();
-anotherService.DoAnotherThing();
-thirdService.DoThirdThing();
-```
-
-2. Promise-based - Multiple Services (Supports upto 6 services)
-#### Retrieving Two Services:
-```csharp
-locator.GetService<IMyService, IAnotherService>()
-    .Then(services => {
-        var myService = services.Item1;
-        var anotherService = services.Item2;
-
-        myService.DoSomething();
-        anotherService.DoAnotherThing();
-    })
-    .Catch(ex => {
-        Debug.LogError($"Failed to get services: {ex.Message}");
-    });
-```
-#### Retrieving Three Services:
+#### Promise-based - Three Services
 ```csharp
 locator.GetService<IMyService, IAnotherService, IThirdService>()
-    .Then(services => {
-        var myService = services.Item1;
-        var anotherService = services.Item2;
-        var thirdService = services.Item3;
-
-        myService.DoSomething();
-        anotherService.DoAnotherThing();
-        thirdService.DoThirdThing();
+    .Then(services =>
+    {
+        services.Item1.DoSomething();
+        services.Item2.DoAnotherThing();
+        services.Item3.DoThirdThing();
     })
-    .Catch(ex => {
-        Debug.LogError($"Failed to get services: {ex.Message}");
-    });
-
+    .Catch(ex => Debug.LogError($"Failed to get services: {ex.Message}"));
 ```
 
 ### Unregistering Services
-To unregister a service:
+Unregister a service when no longer needed:
 
 ```csharp
 locator.Unregister<IMyService>();
 ```
 
 ### Simplified Service Registration with MonoService
-For MonoBehaviour-based services, you can use the `MonoService<T>` base class:
+Use MonoService<T> for automatic registration/unregistration::
 
 ```csharp
 public interface IMyService
@@ -160,42 +120,150 @@ public class MyMonoService : MonoService<IMyService>, IMyService
 {
     public void DoSomething()
     {
-        // Service implementation
+        Debug.Log("Doing something from MonoService!");
     }
 
-    // Optionally override Awake and OnDestroy if needed
     protected override void Awake()
     {
-        base.Awake();        
-        // Additional initialization...
-        
-        // Indicate that the service is ready by calling the ServiceReady method. This will now register the service and fullfill any pending promises.
-        ServiceReady();
+        base.Awake();
+        // Additional initialization if needed
+        ServiceReady(); // Registers the service
     }
 }
-
 ```
 
-This will automatically register the service when the MonoBehaviour is created and unregister it when destroyed.
+## Advanced Use Cases
+Using Cancellation Token
 
-## Additional Features
+ServiceLocator supports `CancellationToken` for canceling service retrieval, particularly useful with `MonoBehaviour.destroyCancellationToken` to handle cleanup when objects are destroyed.
 
-### Cleanup
-To clean up all registered services and pending promises:
+**Example: Canceling Async Service Retrieval**
+```csharp
+public class ServiceUser : MonoBehaviour
+{
+    [SerializeField] private ServiceLocator locator;
+
+    private async void Start()
+    {
+        try
+        {
+            var service = await locator.GetServiceAsync<IMyService>(destroyCancellationToken);
+            service.DoSomething();
+        }
+        catch (TaskCanceledException)
+        {
+            Debug.Log("Service retrieval canceled due to object destruction.");
+        }
+    }
+}
+```
+**Behavior:** If the MonoBehaviour is destroyed before the service is retrieved, the task cancels automatically, preventing memory leaks or invalid operations.
+
+**Example: Canceling Promise-based Retrieval**
+```csharp
+public class PromiseUser : MonoBehaviour
+{
+    [SerializeField] private ServiceLocator locator;
+
+    private void Start()
+    {
+        locator.GetService<IMyService>(destroyCancellationToken)
+            .Then(service => service.DoSomething())
+            .Catch(ex => Debug.Log($"Retrieval failed or canceled: {ex.Message}"));
+    }
+}
+```
+**Behavior:** The promise rejects with a TaskCanceledException if the object is destroyed, ensuring safe cleanup.
+
+## Error Handling and Service Rejection
+ServiceLocator provides mechanisms to handle errors and explicitly reject service promises.
+
+**Example: Handling Errors with Async/Await**
+```csharp
+public class ErrorHandler : MonoBehaviour
+{
+    [SerializeField] private ServiceLocator locator;
+
+    private async void Start()
+    {
+        try
+        {
+            var service = await locator.GetServiceAsync<IMyService>();
+            service.DoSomething();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to retrieve service: {ex.Message}");
+        }
+    }
+}
+```
+**Behavior:** Catches any exceptions, such as cancellation or rejection, thrown during retrieval.
+
+**Example: Rejecting a Service with a Custom Exception**
+```csharp
+public class ServiceRejector : MonoBehaviour
+{
+    [SerializeField] private ServiceLocator locator;
+
+    private void Start()
+    {
+        locator.GetService<IMyService>()
+            .Then(service => service.DoSomething())
+            .Catch(ex => Debug.LogError($"Service rejected: {ex.Message}"));
+
+        // Simulate a failure to initialize the service
+        locator.RejectService<IMyService>(new InvalidOperationException("Service initialization failed"));
+    }
+}
+```
+**Behavior:** RejectService triggers the Catch handler with the custom exception, allowing you to handle initialization failures gracefully.
+
+**Example: Combining Cancellation and Rejection**
+```csharp
+public class CombinedHandler : MonoBehaviour
+{
+    [SerializeField] private ServiceLocator locator;
+
+    private void Start()
+    {
+        locator.GetService<IMyService>(destroyCancellationToken)
+            .Then(service => service.DoSomething())
+            .Catch(ex =>
+            {
+                if (ex is TaskCanceledException)
+                {
+                    Debug.Log("Retrieval canceled due to destruction.");
+                }
+                else
+                {
+                    Debug.LogError($"Service retrieval failed: {ex.Message}");
+                }
+            });
+
+        // Simulate rejection if initialization fails
+        if (someCondition)
+        {
+            locator.RejectService<IMyService>(new InvalidOperationException("Initialization failed"));
+        }
+    }
+}
+```
+**Behavior:** Handles both cancellation (e.g., object destruction) and explicit rejection (e.g., initialization failure) in a single Catch block.
+
+### Cleaning Up
+Manually clean up services and promises:
 
 ```csharp
-locator.CleanupServiceLocator();
+locator.Cleanup(); // Clears services and cancels pending promises
 ```
 
 ### Initialization and De-initialization
-ServiceLocator automatically initializes when enabled and de-initializes when disabled. You can also manually control this:
+ServiceLocator initializes/de-initializes automatically, but you can control it manually:
 
 ```csharp
-// To manually initialize
-locator.InitializeServiceLocator();
-
-// To manually de-initialize
-locator.DeInitializeServiceLocator();
+locator.Initialize(); // Manual initialization
+locator.DeInitialize(); // Manual cleanup
 ```
 
 ## Contributing
@@ -205,4 +273,4 @@ Contributions are welcome! Please refer to CONTRIBUTING.md for guidelines on how
 ServiceLocator is licensed under the MIT license. See LICENSE for more details.
 
 ## Alternative Solution
-While the ServiceLocator pattern is useful, consider using Dependency Injection (DI) for a more robust solution. DI frameworks like Zenject can offer more control and flexibility in managing dependencies in Unity projects.
+For more complex dependency management, consider Dependency Injection frameworks like Zenject. ServiceLocator is ideal for simpler service management needs in Unity.

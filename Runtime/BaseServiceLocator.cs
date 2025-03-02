@@ -2,6 +2,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -14,13 +16,16 @@ namespace Nonatomic.ServiceLocator
 	/// </summary>
 	public abstract class BaseServiceLocator : ScriptableObject
 	{
-		public bool IsInitialized { get; protected  set; } = false;
+		public bool IsInitialized { get; protected set; } = false;
 
-		protected  readonly Dictionary<Type, object> ServiceMap = new();
-		protected  readonly Dictionary<Type, TaskCompletionSource<object>> PromiseMap = new();
+		protected readonly Dictionary<Type, object> ServiceMap = new();
+		protected readonly Dictionary<Type, List<TaskCompletionSource<object>>> PromiseMap = new(); // Changed to List
 		protected readonly List<(Type, Action<object>)> PendingCoroutines = new();
 		protected readonly object Lock = new();
 
+		/// <summary>
+		/// Manually cleans up all unfulfilled promises.
+		/// </summary>
 		/// <summary>
 		/// Manually cleans up all unfulfilled promises.
 		/// </summary>
@@ -28,15 +33,34 @@ namespace Nonatomic.ServiceLocator
 		{
 			lock (Lock)
 			{
-				foreach (var promise in PromiseMap.Values)
+				foreach (var promiseList in PromiseMap.Values)
 				{
-					promise.TrySetCanceled();
+					foreach (var promise in promiseList.ToList())
+					{
+						promise.TrySetCanceled();
+					}
 				}
-
 				PromiseMap.Clear();
 			}
 		}
+		
+		public virtual void RejectService<T>(Exception exception) where T : class
+		{
+			if (exception == null) throw new ArgumentNullException(nameof(exception));
 
+			lock (Lock)
+			{
+				var serviceType = typeof(T);
+				if (PromiseMap.TryGetValue(serviceType, out var taskList))
+				{
+					foreach (var tcs in taskList.ToList())
+					{
+						tcs.TrySetException(exception);
+					}
+					PromiseMap.Remove(serviceType);
+				}
+			}
+		}
 
 		/// <summary>
 		/// Registers a service with the service locator.
@@ -51,20 +75,20 @@ namespace Nonatomic.ServiceLocator
 			lock (Lock)
 			{
 				if (service == null)
-				{
 					throw new ArgumentNullException("service", "Cannot register a null service.");
-				}
-				
+            
 				var serviceType = typeof(T);
 				ServiceMap[serviceType] = service;
 
-				if (PromiseMap.TryGetValue(serviceType, out var taskCompletion))
+				if (PromiseMap.TryGetValue(serviceType, out var taskCompletions))
 				{
-					taskCompletion.TrySetResult(service);
+					foreach (var tcs in taskCompletions.ToList()) // ToList to avoid modification issues
+					{
+						tcs.TrySetResult(service);
+					}
 					PromiseMap.Remove(serviceType);
 				}
 
-				// Resolve any pending coroutines for this service type
 				var pendingCoroutines = PendingCoroutines.FindAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
 				foreach (var (_, callback) in pendingCoroutines)
 				{
@@ -97,39 +121,59 @@ namespace Nonatomic.ServiceLocator
 		/// <remarks>
 		/// If the service is not yet registered, this method will wait until it becomes available.
 		/// </remarks>
-		public virtual async Task<T> GetServiceAsync<T>() where T : class
+		public virtual async Task<T> GetServiceAsync<T>(CancellationToken cancellation = default) where T : class
 		{
 			var serviceType = typeof(T);
-			TaskCompletionSource<object>? taskCompletion = null;
+			TaskCompletionSource<object> taskCompletion;
 
 			lock (Lock)
 			{
-				if (ServiceMap.TryGetValue(serviceType, out var service)) 
-					return (T)service;
-
-				if (!PromiseMap.TryGetValue(serviceType, out taskCompletion))
+				if (ServiceMap.TryGetValue(serviceType, out var service))
 				{
-					taskCompletion = new TaskCompletionSource<object>();
-					PromiseMap[serviceType] = taskCompletion;
+					return (T)service;
 				}
+
+				taskCompletion = new TaskCompletionSource<object>();
+				if (!PromiseMap.TryGetValue(serviceType, out var taskList))
+				{
+					taskList = new List<TaskCompletionSource<object>>();
+					PromiseMap[serviceType] = taskList;
+				}
+				taskList.Add(taskCompletion);
 			}
 
-			// Now safely await outside the lock
-			return (T)await taskCompletion!.Task;
+			if (cancellation.CanBeCanceled)
+			{
+				cancellation.Register(() =>
+				{
+					lock (Lock)
+					{
+						if (!PromiseMap.TryGetValue(serviceType, out var taskList) || !taskList.Contains(taskCompletion)) return;
+						
+						taskCompletion.TrySetCanceled();
+						taskList.Remove(taskCompletion);
+						if (taskList.Count != 0) return;
+						
+						PromiseMap.Remove(serviceType);
+					}
+				});
+			}
+
+			return (T)await taskCompletion.Task;
 		}
 
 		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
-		public virtual Task<(T1, T2)> GetServiceAsync<T1, T2>()
+		public virtual Task<(T1, T2)> GetServiceAsync<T1, T2>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class 
-			=> GetServicesAsync<T1, T2>();
+			=> GetServicesAsync<T1, T2>(cancellation);
 
-		public virtual async Task<(T1, T2)> GetServicesAsync<T1, T2>()
+		public virtual async Task<(T1, T2)> GetServicesAsync<T1, T2>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class
 		{
-			var task1 = GetServiceAsync<T1>();
-			var task2 = GetServiceAsync<T2>();
+			var task1 = GetServiceAsync<T1>(cancellation);
+			var task2 = GetServiceAsync<T2>(cancellation);
 
 			await Task.WhenAll(task1, task2);
 
@@ -137,20 +181,20 @@ namespace Nonatomic.ServiceLocator
 		}
 		
 		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
-		public virtual Task<(T1, T2, T3)> GetServiceAsync<T1, T2, T3>()
+		public virtual Task<(T1, T2, T3)> GetServiceAsync<T1, T2, T3>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class 
 			where T3 : class 
-			=> GetServicesAsync<T1, T2, T3>();
+			=> GetServicesAsync<T1, T2, T3>(cancellation);
 		
-		public virtual async Task<(T1, T2, T3)> GetServicesAsync<T1, T2, T3>()
+		public virtual async Task<(T1, T2, T3)> GetServicesAsync<T1, T2, T3>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class
 			where T3 : class
 		{
-			var task1 = GetServiceAsync<T1>();
-			var task2 = GetServiceAsync<T2>();
-			var task3 = GetServiceAsync<T3>();
+			var task1 = GetServiceAsync<T1>(cancellation);
+			var task2 = GetServiceAsync<T2>(cancellation);
+			var task3 = GetServiceAsync<T3>(cancellation);
 
 			await Task.WhenAll(task1, task2, task3);
 
@@ -158,23 +202,23 @@ namespace Nonatomic.ServiceLocator
 		}
 		
 		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
-		public virtual Task<(T1, T2, T3, T4)> GetServiceAsync<T1, T2, T3, T4>()
+		public virtual Task<(T1, T2, T3, T4)> GetServiceAsync<T1, T2, T3, T4>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class 
 			where T3 : class 
 			where T4 : class 
-			=> GetServicesAsync<T1, T2, T3, T4>();
+			=> GetServicesAsync<T1, T2, T3, T4>(cancellation);
 		
-		public virtual async Task<(T1, T2, T3, T4)> GetServicesAsync<T1, T2, T3, T4>()
+		public virtual async Task<(T1, T2, T3, T4)> GetServicesAsync<T1, T2, T3, T4>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class
 			where T3 : class
 			where T4 : class
 		{
-			var task1 = GetServiceAsync<T1>();
-			var task2 = GetServiceAsync<T2>();
-			var task3 = GetServiceAsync<T3>();
-			var task4 = GetServiceAsync<T4>();
+			var task1 = GetServiceAsync<T1>(cancellation);
+			var task2 = GetServiceAsync<T2>(cancellation);
+			var task3 = GetServiceAsync<T3>(cancellation);
+			var task4 = GetServiceAsync<T4>(cancellation);
 
 			await Task.WhenAll(task1, task2, task3, task4);
 
@@ -182,26 +226,26 @@ namespace Nonatomic.ServiceLocator
 		}
 		
 		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
-		public virtual Task<(T1, T2, T3, T4, T5)> GetServiceAsync<T1, T2, T3, T4, T5>()
+		public virtual Task<(T1, T2, T3, T4, T5)> GetServiceAsync<T1, T2, T3, T4, T5>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class 
 			where T3 : class 
 			where T4 : class 
 			where T5 : class 
-			=> GetServicesAsync<T1, T2, T3, T4, T5>();
+			=> GetServicesAsync<T1, T2, T3, T4, T5>(cancellation);
 		
-		public virtual async Task<(T1, T2, T3, T4, T5)> GetServicesAsync<T1, T2, T3, T4, T5>()
+		public virtual async Task<(T1, T2, T3, T4, T5)> GetServicesAsync<T1, T2, T3, T4, T5>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class
 			where T3 : class
 			where T4 : class
 			where T5 : class
 		{
-			var task1 = GetServiceAsync<T1>();
-			var task2 = GetServiceAsync<T2>();
-			var task3 = GetServiceAsync<T3>();
-			var task4 = GetServiceAsync<T4>();
-			var task5 = GetServiceAsync<T5>();
+			var task1 = GetServiceAsync<T1>(cancellation);
+			var task2 = GetServiceAsync<T2>(cancellation);
+			var task3 = GetServiceAsync<T3>(cancellation);
+			var task4 = GetServiceAsync<T4>(cancellation);
+			var task5 = GetServiceAsync<T5>(cancellation);
 
 			await Task.WhenAll(task1, task2, task3, task4, task5);
 
@@ -209,16 +253,16 @@ namespace Nonatomic.ServiceLocator
 		}
 		
 		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
-		public virtual Task<(T1, T2, T3, T4, T5, T6)> GetServiceAsync<T1, T2, T3, T4, T5, T6>()
+		public virtual Task<(T1, T2, T3, T4, T5, T6)> GetServiceAsync<T1, T2, T3, T4, T5, T6>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class 
 			where T3 : class 
 			where T4 : class 
 			where T5 : class 
 			where T6 : class 
-			=> GetServicesAsync<T1, T2, T3, T4, T5, T6>();
+			=> GetServicesAsync<T1, T2, T3, T4, T5, T6>(cancellation);
 		
-		public virtual async Task<(T1, T2, T3, T4, T5, T6)> GetServicesAsync<T1, T2, T3, T4, T5, T6>()
+		public virtual async Task<(T1, T2, T3, T4, T5, T6)> GetServicesAsync<T1, T2, T3, T4, T5, T6>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class
 			where T3 : class
@@ -226,12 +270,12 @@ namespace Nonatomic.ServiceLocator
 			where T5 : class
 			where T6 : class
 		{
-			var task1 = GetServiceAsync<T1>();
-			var task2 = GetServiceAsync<T2>();
-			var task3 = GetServiceAsync<T3>();
-			var task4 = GetServiceAsync<T4>();
-			var task5 = GetServiceAsync<T5>();
-			var task6 = GetServiceAsync<T6>();
+			var task1 = GetServiceAsync<T1>(cancellation);
+			var task2 = GetServiceAsync<T2>(cancellation);
+			var task3 = GetServiceAsync<T3>(cancellation);
+			var task4 = GetServiceAsync<T4>(cancellation);
+			var task5 = GetServiceAsync<T5>(cancellation);
+			var task6 = GetServiceAsync<T6>(cancellation);
 
 			await Task.WhenAll(task1, task2, task3, task4, task5, task6);
 
@@ -295,6 +339,12 @@ namespace Nonatomic.ServiceLocator
 						callback((T)service);
 						yield break;
 					}
+					// Check if the coroutine is still pending after cleanup
+					if (!PendingCoroutines.Any(x => x.Item1 == serviceType && x.Item2 == wrappedCallback))
+					{
+						isPending = false; // Exit if cleaned up
+						yield break;
+					}
 				}
 				yield return null;
 			}
@@ -319,75 +369,119 @@ namespace Nonatomic.ServiceLocator
 		/// If the service is already registered, the promise will resolve immediately.
 		/// If not, it will resolve when the service is registered in the future.
 		/// </remarks>
-		public virtual IServicePromise<T> GetService<T>() where T : class
+		public virtual IServicePromise<T> GetService<T>(CancellationToken cancellation = default) where T : class
 		{
 			var promise = new ServicePromise<T>();
 			var serviceType = typeof(T);
 
-			if (ServiceMap.TryGetValue(serviceType, out var service))
+			lock (Lock)
 			{
-				promise.Resolve((T)service);
-				return promise;
-			}
-
-			if (!PromiseMap.TryGetValue(serviceType, out var taskCompletion))
-			{
-				taskCompletion = new TaskCompletionSource<object>();
-				PromiseMap[serviceType] = taskCompletion;
-			}
-			
-			promise.BindTo(taskCompletion);
-
-			taskCompletion.Task.ContinueWith(task =>
-			{
-				if (task.IsCompletedSuccessfully)
+				if (ServiceMap.TryGetValue(serviceType, out var service))
 				{
-					promise.Resolve((T)task.Result);
+					promise.Resolve((T)service);
+					return promise;
 				}
-				else
+
+				var taskCompletion = new TaskCompletionSource<object>();
+				if (!PromiseMap.TryGetValue(serviceType, out var taskList))
 				{
-					promise.Reject(task.Exception ?? new Exception("Unknown error"));
+					taskList = new List<TaskCompletionSource<object>>();
+					PromiseMap[serviceType] = taskList;
 				}
-			});
+				taskList.Add(taskCompletion);
+
+				promise.BindTo(taskCompletion);
+
+				if (cancellation.CanBeCanceled)
+				{
+					cancellation.Register(() =>
+					{
+						lock (Lock)
+						{
+							if (taskList.Contains(taskCompletion))
+							{
+								taskCompletion.TrySetCanceled();
+								taskList.Remove(taskCompletion);
+								if (taskList.Count == 0)
+									PromiseMap.Remove(serviceType);
+							}
+						}
+					});
+				}
+
+				taskCompletion.Task.ContinueWith(task =>
+				{
+					lock (Lock)
+					{
+						if (taskList.Contains(taskCompletion))
+						{
+							taskList.Remove(taskCompletion);
+							if (taskList.Count == 0)
+								PromiseMap.Remove(serviceType);
+						}
+					}
+
+					if (task.IsCompletedSuccessfully)
+						promise.Resolve((T)task.Result);
+					else if (task.IsCanceled)
+						promise.Reject(new TaskCanceledException("Service retrieval was canceled"));
+					else if (task.IsFaulted)
+						promise.Reject(task.Exception ?? new Exception("Unknown error"));
+				});
+			}
 
 			return promise;
 		}
 		
-		public virtual IServicePromise<(T1, T2)> GetService<T1, T2>()
+		public virtual IServicePromise<(T1, T2)> GetService<T1, T2>(CancellationToken token = default)
 			where T1 : class
 			where T2 : class
 		{
-			return ServicePromiseCombiner.CombinePromises(GetService<T1>(), GetService<T2>());
+			return ServicePromiseCombiner.CombinePromises(
+				GetService<T1>(token), 
+				GetService<T2>(token));
 		}
 
-		public virtual IServicePromise<(T1, T2, T3)> GetService<T1, T2, T3>()
+		public virtual IServicePromise<(T1, T2, T3)> GetService<T1, T2, T3>(CancellationToken token = default)
 			where T1 : class
 			where T2 : class
 			where T3 : class
 		{
-			return ServicePromiseCombiner.CombinePromises(GetService<T1>(), GetService<T2>(), GetService<T3>());
+			return ServicePromiseCombiner.CombinePromises(
+				GetService<T1>(token), 
+				GetService<T2>(token), 
+				GetService<T3>(token));
 		}
 		
-		public virtual IServicePromise<(T1, T2, T3, T4)> GetService<T1, T2, T3, T4>()
+		public virtual IServicePromise<(T1, T2, T3, T4)> GetService<T1, T2, T3, T4>(CancellationToken token = default)
 			where T1 : class
 			where T2 : class
 			where T3 : class
 			where T4 : class
 		{
-			return ServicePromiseCombiner.CombinePromises(GetService<T1>(), GetService<T2>(), GetService<T3>(), GetService<T4>());
+			return ServicePromiseCombiner.CombinePromises(
+				GetService<T1>(token), 
+				GetService<T2>(token), 
+				GetService<T3>(token), 
+				GetService<T4>(token));
 		}
 		
-		public virtual IServicePromise<(T1, T2, T3, T4, T5)> GetService<T1, T2, T3, T4, T5>()
+		public virtual IServicePromise<(T1, T2, T3, T4, T5)> GetService<T1, T2, T3, T4, T5>(CancellationToken token = default)
 			where T1 : class
 			where T2 : class
 			where T3 : class
 			where T4 : class
 			where T5 : class
 		{
-			return ServicePromiseCombiner.CombinePromises(GetService<T1>(), GetService<T2>(), GetService<T3>(), GetService<T4>(), GetService<T5>());
+			return ServicePromiseCombiner.CombinePromises(
+				GetService<T1>(token), 
+				GetService<T2>(token), 
+				GetService<T3>(token), 
+				GetService<T4>(token), 
+				GetService<T5>(token));
 		}
 		
-		public virtual IServicePromise<(T1, T2, T3, T4, T5, T6)> GetService<T1, T2, T3, T4, T5, T6>()
+		public virtual IServicePromise<(T1, T2, T3, T4, T5, T6)> GetService<T1, T2, T3, T4, T5, T6>(CancellationToken token = default)
 			where T1 : class
 			where T2 : class
 			where T3 : class
@@ -395,7 +489,13 @@ namespace Nonatomic.ServiceLocator
 			where T5 : class
 			where T6 : class
 		{
-			return ServicePromiseCombiner.CombinePromises(GetService<T1>(), GetService<T2>(), GetService<T3>(), GetService<T4>(), GetService<T5>(), GetService<T6>());
+			return ServicePromiseCombiner.CombinePromises(
+				GetService<T1>(token), 
+				GetService<T2>(token), 
+				GetService<T3>(token), 
+				GetService<T4>(token), 
+				GetService<T5>(token), 
+				GetService<T6>(token));
 		}
 
 		/// <summary>
