@@ -1,4 +1,9 @@
-﻿#nullable enable
+﻿#if UNITY_2023_1_OR_NEWER
+#define USE_AWAITABLE
+using UnityEngine.Internal;
+#endif
+
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -76,7 +81,7 @@ namespace Nonatomic.ServiceLocator
 			{
 				if (service == null)
 					throw new ArgumentNullException("service", "Cannot register a null service.");
-            
+			
 				var serviceType = typeof(T);
 				ServiceMap[serviceType] = service;
 
@@ -587,5 +592,249 @@ namespace Nonatomic.ServiceLocator
 				CancelPendingCoroutines();
 			}
 		}
+		
+#if USE_AWAITABLE
+		public virtual async Awaitable<T> GetServiceAwaitable<T>(CancellationToken cancellation = default) where T : class
+		{
+			var serviceType = typeof(T);
+			AwaitableCompletionSource<object> awaitableCompletion;
+			TaskCompletionSource<object> taskCompletion;
+
+			lock (Lock)
+			{
+				if (ServiceMap.TryGetValue(serviceType, out var service))
+				{
+					return (T)service;
+				}
+
+				awaitableCompletion = new AwaitableCompletionSource<object>();
+				taskCompletion = new TaskCompletionSource<object>();
+				if (!PromiseMap.TryGetValue(serviceType, out var taskList))
+				{
+					taskList = new List<TaskCompletionSource<object>>();
+					PromiseMap[serviceType] = taskList;
+				}
+				taskList.Add(taskCompletion);
+
+				_ = taskCompletion.Task.ContinueWith(t =>
+				{
+					if (t.IsCompletedSuccessfully)
+					{
+						awaitableCompletion.TrySetResult(t.Result);
+					}
+					else if (t.IsCanceled)
+					{
+						awaitableCompletion.TrySetCanceled();
+					}
+					else if (t.IsFaulted)
+					{
+						awaitableCompletion.TrySetException(t.Exception?.InnerException ?? t.Exception);
+					}
+				});
+			}
+
+			if (cancellation.CanBeCanceled)
+			{
+				cancellation.Register(() =>
+				{
+					lock (Lock)
+					{
+						if (!PromiseMap.TryGetValue(serviceType, out var taskList) || !taskList.Contains(taskCompletion)) return;
+						
+						awaitableCompletion.TrySetCanceled();
+						taskCompletion.TrySetCanceled();
+						taskList.Remove(taskCompletion);
+						if (taskList.Count == 0) PromiseMap.Remove(serviceType);
+					}
+				});
+			}
+
+			return (T)await awaitableCompletion.Awaitable;
+		}
+
+		// Non-generic Awaitable.WaitAll (for void Awaitable instances)
+		private static async Awaitable AwaitableWaitAll(params Awaitable[] awaitables)
+		{
+			if (awaitables == null || awaitables.Length == 0)
+			{
+				return; // Nothing to wait for
+			}
+
+			var completionSource = new AwaitableCompletionSource<bool>();
+			int remaining = awaitables.Length;
+
+			foreach (var awaitable in awaitables)
+			{
+                awaitable.GetAwaiter().OnCompleted(() =>
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await awaitable;
+                            if (--remaining == 0)
+                            {
+                                completionSource.TrySetResult(true);
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            completionSource.TrySetCanceled();
+                        }
+                        catch (Exception ex)
+                        {
+                            completionSource.TrySetException(ex);
+                        }
+                    });
+                });
+			}
+
+			await completionSource.Awaitable;
+		}
+
+		// Generic Awaitable.WaitAll for multiple Awaitable<T> with different T types
+		private static async Awaitable<(T1, T2)> AwaitableWaitAll<T1, T2>(Awaitable<T1> awaitable1, Awaitable<T2> awaitable2)
+		{
+			var completionSource = new AwaitableCompletionSource<(T1, T2)>();
+			int remaining = 2;
+			T1 result1 = default;
+			T2 result2 = default;
+
+			awaitable1.GetAwaiter().OnCompleted(async () =>
+			{
+				try
+				{
+					result1 = await awaitable1;
+					if (--remaining == 0)
+					{
+						completionSource.TrySetResult((result1, result2));
+					}
+				}
+				catch (OperationCanceledException)
+				{
+					completionSource.TrySetCanceled();
+				}
+				catch (Exception ex)
+				{
+					completionSource.TrySetException(ex);
+				}
+			});
+
+			awaitable2.GetAwaiter().OnCompleted(async () =>
+			{
+				try
+				{
+					result2 = await awaitable2;
+					if (--remaining == 0)
+					{
+						completionSource.TrySetResult((result1, result2));
+					}
+				}
+				catch (OperationCanceledException)
+				{
+					completionSource.TrySetCanceled();
+				}
+				catch (Exception ex)
+				{
+					completionSource.TrySetException(ex);
+				}
+			});
+
+			return await completionSource.Awaitable;
+		}
+
+		private static async Awaitable<(T1, T2, T3)> AwaitableWaitAll<T1, T2, T3>(Awaitable<T1> awaitable1, Awaitable<T2> awaitable2, Awaitable<T3> awaitable3)
+		{
+			var completionSource = new AwaitableCompletionSource<(T1, T2, T3)>();
+			int remaining = 3;
+			T1 result1 = default;
+			T2 result2 = default;
+			T3 result3 = default;
+
+			awaitable1.GetAwaiter().OnCompleted(async () =>
+			{
+				try
+				{
+					result1 = await awaitable1;
+					if (--remaining == 0)
+					{
+						completionSource.TrySetResult((result1, result2, result3));
+					}
+				}
+				catch (OperationCanceledException)
+				{
+					completionSource.TrySetCanceled();
+				}
+				catch (Exception ex)
+				{
+					completionSource.TrySetException(ex);
+				}
+			});
+
+			awaitable2.GetAwaiter().OnCompleted(async () =>
+			{
+				try
+				{
+					result2 = await awaitable2;
+					if (--remaining == 0)
+					{
+						completionSource.TrySetResult((result1, result2, result3));
+					}
+				}
+				catch (OperationCanceledException)
+				{
+					completionSource.TrySetCanceled();
+				}
+				catch (Exception ex)
+				{
+					completionSource.TrySetException(ex);
+				}
+			});
+
+			awaitable3.GetAwaiter().OnCompleted(async () =>
+			{
+				try
+				{
+					result3 = await awaitable3;
+					if (--remaining == 0)
+					{
+						completionSource.TrySetResult((result1, result2, result3));
+					}
+				}
+				catch (OperationCanceledException)
+				{
+					completionSource.TrySetCanceled();
+				}
+				catch (Exception ex)
+				{
+					completionSource.TrySetException(ex);
+				}
+			});
+
+			return await completionSource.Awaitable;
+		}
+
+		// Add more generic overloads as needed...
+
+		public virtual async Awaitable<(T1, T2)> GetServicesAwaitable<T1, T2>(CancellationToken cancellation = default)
+			where T1 : class
+			where T2 : class
+		{
+			var awaitable1 = GetServiceAwaitable<T1>(cancellation);
+			var awaitable2 = GetServiceAwaitable<T2>(cancellation);
+			return await AwaitableWaitAll(awaitable1, awaitable2);
+		}
+
+		public virtual async Awaitable<(T1, T2, T3)> GetServicesAwaitable<T1, T2, T3>(CancellationToken cancellation = default)
+			where T1 : class
+			where T2 : class
+			where T3 : class
+		{
+			var awaitable1 = GetServiceAwaitable<T1>(cancellation);
+			var awaitable2 = GetServiceAwaitable<T2>(cancellation);
+			var awaitable3 = GetServiceAwaitable<T3>(cancellation);
+			return await AwaitableWaitAll(awaitable1, awaitable2, awaitable3);
+		}
+#endif
 	}
 }
