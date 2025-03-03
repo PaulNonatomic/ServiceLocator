@@ -1,8 +1,13 @@
 ﻿#nullable enable
+using System;
 using System.Collections;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Nonatomic.ServiceLocator;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
@@ -16,6 +21,7 @@ namespace Tests.EditMode
 		[SetUp]
 		public void Setup()
 		{
+			UnitySynchronizationContext.Initialize();
 			_serviceLocator = ScriptableObject.CreateInstance<TestServiceLocator>();
 		}
 
@@ -484,6 +490,170 @@ namespace Tests.EditMode
 
 			Assert.IsFalse(thenCalled);
 			Assert.IsFalse(catchCalled);
+		}
+		
+		/// <summary>
+		/// Tests that exceptions thrown inside a Then callback are correctly surfaced to the Catch callback.
+		/// </summary>
+		[UnityTest]
+		public IEnumerator ServicePromise_ExceptionThrownInThen_IsCaughtInCatch()
+		{
+			var testService = new TestService();
+			_serviceLocator.Register(testService);
+
+			Exception caughtException = null;
+			var expectedException = new InvalidOperationException("Test exception from Then.");
+
+			var promise = _serviceLocator.GetService<TestService>();
+			promise
+				.Then(service =>
+				{
+					throw expectedException;
+				})
+				.Catch(ex =>
+				{
+					caughtException = ex;
+				});
+
+			// Wait until the Catch callback is invoked
+			yield return new WaitUntil(() => caughtException != null);
+
+			// Assert
+			Assert.IsNotNull(caughtException, "Exception was not caught in Catch.");
+			Assert.AreEqual(expectedException, caughtException, "Caught exception does not match the expected exception.");
+		}
+		
+		// Thread Safety Tests
+		
+		public IEnumerator ConcurrentRegistrationAndAccess_DoesNotDeadlock() 
+		{
+			var task1 = Task.Run(() => _serviceLocator.GetServiceAsync<TestService>());
+			var task2 = Task.Run(() => _serviceLocator.GetServiceAsync<AnotherTestService>());
+
+			// Wait a little for tasks to potentially start processing
+			yield return new WaitForSeconds(0.1f);
+
+			_serviceLocator.Register(new TestService());
+			_serviceLocator.Register(new AnotherTestService());
+
+			// Ensure tasks complete
+			while (!task1.IsCompleted || !task2.IsCompleted)
+			{
+				yield return null; // Wait until the next frame
+			}
+
+			// Assert that no exceptions were thrown
+			try
+			{
+				var result1 = task1.Result; // Accessing Result will rethrow any caught exception
+				var result2 = task2.Result;
+			}
+			catch (Exception e)
+			{
+				Assert.Fail("Exception thrown: " + e.Message);
+			}
+		}
+		
+		[Test]
+		public void TryGetService_WhileUnregistering_ReturnsConsistentState()
+		{
+			var service = new TestService();
+			_serviceLocator.Register(service);
+		
+			Parallel.Invoke(
+				() => {
+					for (int i = 0; i < 1000; i++) 
+						_serviceLocator.TryGetService(out TestService _);
+				},
+				() => {
+					for (int i = 0; i < 1000; i++) 
+						_serviceLocator.Unregister<TestService>();
+				}
+			);
+		}
+		
+		// Error Condition Tests
+		
+		[Test]
+		public void Register_NullService_ThrowsException()
+		{
+			Assert.Throws<ArgumentNullException>(() => 
+				_serviceLocator.Register<TestService>(null)
+			);
+		}
+		
+		// Multi-Service Edge Cases
+		
+		[UnityTest]
+		public IEnumerator CombinedPromise_Rejects_WhenSubPromiseFails()
+		{
+			var exception = new Exception("Test failure");
+			var caught = false;
+
+			var promise1 = _serviceLocator.GetService<TestService>();
+			var promise2 = _serviceLocator.GetService<AnotherTestService>();
+			var combinedPromise = ServicePromiseCombiner.CombinePromises(promise1, promise2);
+			combinedPromise.Catch(_ => caught = true);
+
+			yield return null;
+			_serviceLocator.Register(new TestService()); // Resolves promise1
+			promise2.Reject(exception);                  // Rejects promise2
+
+			yield return new WaitUntil(() => caught);
+
+			Assert.IsTrue(caught, "Combined promise should reject when a sub-promise fails.");
+		}
+		
+		// Lifetime Management Tests
+		
+		[Test]
+		public void DisposableServices_Disposed_OnCleanup()
+		{
+			var disposableService = new DisposableTestService();
+			_serviceLocator.Register(disposableService);
+	
+			_serviceLocator.Cleanup();
+	
+			Assert.IsTrue(disposableService.Disposed);
+		}
+
+		private class DisposableTestService : IDisposable
+		{
+			public bool Disposed { get; private set; }
+			public void Dispose() => Disposed = true;
+		}
+		
+		// Inheritance/Interface Tests
+		
+		[Test]
+		public void CanRegisterDerivedType_AndRetrieveViaBaseType()
+		{
+			var service = new DerivedTestService();
+			_serviceLocator.Register<BaseTestService>(service);
+
+			Assert.IsTrue(_serviceLocator.TryGetService(out BaseTestService _));
+		}
+
+		private class BaseTestService { }
+		private class DerivedTestService : BaseTestService { }
+		
+		// Async Exception Propagation
+		
+		[UnityTest]
+		public IEnumerator GetServiceAsync_PropagatesCancellationException()
+		{
+			var cts = new CancellationTokenSource();
+			var task = _serviceLocator.GetServiceAsync<TestService>(cts.Token);
+
+			yield return null;
+
+			// Simulate a failure by canceling the request
+			cts.Cancel();
+
+			yield return new WaitUntil(() => task.IsCompleted); // Wait for completion (canceled state)
+
+			Assert.IsTrue(task.IsCanceled, "Task should be canceled when the CancellationToken is triggered.");
+			Assert.ThrowsAsync<TaskCanceledException>(async () => await task, "Task should throw TaskCanceledException when canceled.");
 		}
 	}
 }

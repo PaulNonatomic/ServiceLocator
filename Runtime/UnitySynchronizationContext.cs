@@ -15,10 +15,5 @@ namespace Nonatomic.ServiceLocator
 			SynchronizationContext.SetSynchronizationContext(Context);
 			MainThreadId = Thread.CurrentThread.ManagedThreadId;
 		}
-
-		public static void Post(SendOrPostCallback callback, object state)
-		{
-			Context.Post(callback, state);
-		}
 	}
 }

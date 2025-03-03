@@ -10,6 +10,12 @@ namespace Nonatomic.ServiceLocator
 		private bool _isResolved;
 		private bool _isRejected;
 		private readonly TaskCompletionSource<T> _taskCompletion = new();
+		private TaskCompletionSource<object> _innerTaskCompletion;
+
+		public void BindTo(TaskCompletionSource<object> taskCompletion)
+		{
+			_innerTaskCompletion = taskCompletion;
+		}
 
 		public void Resolve(T value)
 		{
@@ -18,15 +24,20 @@ namespace Nonatomic.ServiceLocator
 			_result = value;
 			_isResolved = true;
 			_taskCompletion.TrySetResult(value);
+			_innerTaskCompletion?.TrySetResult(value); 
 		}
 
 		public void Reject(Exception ex)
 		{
 			if (_isResolved || _isRejected) return;
 			
-			_error = ex;
+			// Flatten AggregateException to its innermost exception if applicable
+			var innerEx = ex is AggregateException agg ? agg.Flatten().InnerException : ex;
+			
+			_error = innerEx;
 			_isRejected = true;
-			_taskCompletion.TrySetException(ex);
+			_taskCompletion.TrySetException(innerEx);
+			_innerTaskCompletion?.TrySetException(innerEx); 
 		}
 
 		public ServicePromise<TResult> Then<TResult>(Func<T, TResult> onFulfilled)
