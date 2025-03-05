@@ -40,7 +40,7 @@ public class MyService : IMyService
 }
 
 // Obtain your ServiceLocator instance
-ServiceLocator locator = // ... reference to your ServiceLocator asset
+ServiceLocator locator; // ... reference to your ServiceLocator asset
 locator.Register<IMyService>(new MyService());
 
 ```
@@ -50,20 +50,20 @@ ServiceLocator offers multiple retrieval methods:
 
 1. Async/Await - Single Service:
 ```csharp
-IMyService myService = await locator.GetServiceAsync<IMyService>();
+IMyService myService = await _serviceLocator.GetServiceAsync<IMyService>();
 myService.DoSomething();
 ```
 
 2. Promise-based - Single Service:
 ```csharp
-locator.GetService<IMyService>()
+_serviceLocator.GetService<IMyService>()
     .Then(service => service.DoSomething())
     .Catch(ex => Debug.LogError($"Failed to get service: {ex.Message}"));
 ```
 
 3. Coroutine-based - Single Service:
 ```csharp
-StartCoroutine(locator.GetServiceCoroutine<IMyService>(service => 
+StartCoroutine(_serviceLocator.GetServiceCoroutine<IMyService>(service => 
 {
     service?.DoSomething();
 }));
@@ -72,7 +72,7 @@ StartCoroutine(locator.GetServiceCoroutine<IMyService>(service =>
 
 4. Immediate (Try-Get) - Single Service
 ```csharp
-if (locator.TryGetService<IMyService>(out var myService))
+if (_serviceLocator.TryGetService<IMyService>(out var myService))
 {
     myService.DoSomething();
 }
@@ -84,13 +84,13 @@ Retrieve multiple services in one call (up to 6 supported):
 
 1. Async/Await - Two Services
 ```csharp
-var (myService, anotherService) = await locator.GetServicesAsync<IMyService, IAnotherService>();
+var (myService, anotherService) = await _serviceLocator.GetServicesAsync<IMyService, IAnotherService>();
 myService.DoSomething();
 anotherService.DoAnotherThing();
 ```
 #### Promise-based - Three Services
 ```csharp
-locator.GetService<IMyService, IAnotherService, IThirdService>()
+_serviceLocator.GetService<IMyService, IAnotherService, IThirdService>()
     .Then(services =>
     {
         services.Item1.DoSomething();
@@ -104,7 +104,7 @@ locator.GetService<IMyService, IAnotherService, IThirdService>()
 Unregister a service when no longer needed:
 
 ```csharp
-locator.Unregister<IMyService>();
+_serviceLocator.Unregister<IMyService>();
 ```
 
 ### Simplified Service Registration with MonoService
@@ -132,6 +132,66 @@ public class MyMonoService : MonoService<IMyService>, IMyService
 }
 ```
 
+### MonoService Inheritance
+You can create abstract base classes that inherit from MonoService to establish service patterns:
+```csharp
+// Base abstract class for all mini-game score services
+public abstract class MiniGameScoreService<T> : MonoService<T>, IMiniGameScoreService 
+    where T: class, IMiniGameScoreService
+{
+    // Common score tracking functionality
+    protected int _score;
+    
+    public virtual int GetScore() => _score;
+    public virtual void AddScore(int points) 
+    {
+        _score += points;
+        OnScoreChanged?.Invoke(_score);
+    }
+    
+    public event Action<int> OnScoreChanged;
+    
+    // Other shared functionality...
+}
+
+// Concrete implementation for a specific game
+public class MyGameScoreService : MiniGameScoreService<IMyGameScoreService>, IMyGameScoreService 
+{
+    // Game-specific scoring logic
+    public void AddComboBonus(int comboCount)
+    {
+        AddScore(comboCount * 10);
+    }
+    
+    protected override void Awake()
+    {
+        base.Awake();
+        _score = 0; // Initialize score
+        ServiceReady(); // Register with ServiceLocator
+    }
+}
+```
+**Usage:**
+```csharp
+public class GameController : MonoBehaviour
+{
+    [SerializeField] private ServiceLocator _serviceLocator;
+    
+    protected virtual async void Awake()
+    {
+        // Get the specific mini-game score service
+        // This works because MyGameScoreService registers as IMyGameScoreService
+        var scoreService = await _serviceLocator.GetServiceAsync<IMyGameScoreService>();
+        scoreService.AddComboBonus(5);
+        
+        // This would get the specific implementation, not a generic IMiniGameScoreService
+        // var genericScoreService = await _serviceLocator.GetServiceAsync<IMiniGameScoreService>(); // Won't work!
+        
+        // You can still access the common interface methods
+        scoreService.AddScore(100);
+    }
+}
+```
 ## Advanced Use Cases
 Using Cancellation Token
 
@@ -141,13 +201,13 @@ ServiceLocator supports `CancellationToken` for canceling service retrieval, par
 ```csharp
 public class ServiceUser : MonoBehaviour
 {
-    [SerializeField] private ServiceLocator locator;
+    [SerializeField] private ServiceLocator _serviceLocator;
 
     private async void Start()
     {
         try
         {
-            var service = await locator.GetServiceAsync<IMyService>(destroyCancellationToken);
+            var service = await _serviceLocator.GetServiceAsync<IMyService>(destroyCancellationToken);
             service.DoSomething();
         }
         catch (TaskCanceledException)
@@ -174,6 +234,44 @@ public class PromiseUser : MonoBehaviour
 }
 ```
 **Behavior:** The promise rejects with a TaskCanceledException if the object is destroyed, ensuring safe cleanup.
+
+### Linked Cancellation Tokens
+The ServiceLocator uses [CancellationTokenSource.CreateLinkedTokenSource](https://learn.microsoft.com/en-us/dotnet/api/system.threading.cancellationtokensource.createlinkedtokensource?view=net-9.0) internally to provide robust cancellation behavior for multi-service operations. This offers several benefits:
+
+- **All-or-nothing cancellation**: If any service in a multi-service request fails or cancels, all other pending requests are automatically cancelled
+- **Single control point**: One cancellation token affects all dependent operations
+- **Reduced resource leakage**: Proper cleanup of all related operations when cancellation occurs
+- **Consistent application state**: Prevents partial results where some parts of a tuple are filled while others aren't
+ 
+**Example: Cancelling Multi-Service Operations**
+
+Utilise [MonoBehaviour.destroyCancellationToken](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/MonoBehaviour-destroyCancellationToken.html) to cancel multi-service operations when the object is destroyed with ease.
+```csharp
+public class MultiServiceUser : MonoBehaviour
+{
+    [SerializeField] private ServiceLocator _serviceLocator;
+
+    private async void Start()
+    {
+        try 
+        {
+            // Request multiple services with the same token
+            var (service1, service2, service3) = await _serviceLocator.GetServicesAsync<
+                IAuthService, 
+                IUserService, 
+                IDataService
+            >(destroyCancellationToken);
+            
+            // All services successfully retrieved
+            ProcessServices(service1, service2, service3);
+        }
+        catch (OperationCanceledException)
+        {
+            Debug.Log("Multi-service operation was cancelled");
+        }
+    }
+}
+```
 
 ## Error Handling and Service Rejection
 ServiceLocator provides mechanisms to handle errors and explicitly reject service promises.
@@ -223,11 +321,11 @@ public class ServiceRejector : MonoBehaviour
 ```csharp
 public class CombinedHandler : MonoBehaviour
 {
-    [SerializeField] private ServiceLocator locator;
+    [SerializeField] private ServiceLocator _serviceLocator;
 
     private void Start()
     {
-        locator.GetService<IMyService>(destroyCancellationToken)
+        _serviceLocator.GetService<IMyService>(destroyCancellationToken)
             .Then(service => service.DoSomething())
             .Catch(ex =>
             {
@@ -244,7 +342,7 @@ public class CombinedHandler : MonoBehaviour
         // Simulate rejection if initialization fails
         if (someCondition)
         {
-            locator.RejectService<IMyService>(new InvalidOperationException("Initialization failed"));
+            _serviceLocator.RejectService<IMyService>(new InvalidOperationException("Initialization failed"));
         }
     }
 }
@@ -255,15 +353,15 @@ public class CombinedHandler : MonoBehaviour
 Manually clean up services and promises:
 
 ```csharp
-locator.Cleanup(); // Clears services and cancels pending promises
+_serviceLocator.Cleanup(); // Clears services and cancels pending promises
 ```
 
 ### Initialization and De-initialization
 ServiceLocator initializes/de-initializes automatically, but you can control it manually:
 
 ```csharp
-locator.Initialize(); // Manual initialization
-locator.DeInitialize(); // Manual cleanup
+_serviceLocator.Initialize(); // Manual initialization
+_serviceLocator.DeInitialize(); // Manual cleanup
 ```
 
 ## Contributing

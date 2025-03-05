@@ -655,5 +655,173 @@ namespace Tests.EditMode
 			Assert.IsTrue(task.IsCanceled, "Task should be canceled when the CancellationToken is triggered.");
 			Assert.ThrowsAsync<TaskCanceledException>(async () => await task, "Task should throw TaskCanceledException when canceled.");
 		}
+		
+		// Cancellation Tests
+		
+		[UnityTest]
+		public IEnumerator GetServicesAsync_AllServicesCanceled_WhenOneCancels()
+		{
+			// Create a cancellation token source
+			var cts = new CancellationTokenSource();
+			
+			// Start multiple service requests with the same token
+			var task = _serviceLocator.GetServicesAsync<TestService, AnotherTestService, ThirdTestService>(cts.Token);
+			
+			yield return null; // Wait a frame
+			
+			// Register one of the services to ensure partial resolution doesn't complete the task
+			_serviceLocator.Register(new TestService());
+			
+			yield return null; // Wait a frame
+			
+			// Cancel the token
+			cts.Cancel();
+			
+			// Wait for the task to complete (should be canceled)
+			yield return new WaitUntil(() => task.IsCompleted);
+			
+			// Assert that the task was canceled
+			Assert.IsTrue(task.IsCanceled, "Task should be canceled when the token is canceled");
+			Assert.ThrowsAsync<TaskCanceledException>(async () => await task, 
+				"GetServicesAsync should throw TaskCanceledException when token is canceled");
+		}
+
+		[UnityTest]
+		public IEnumerator CombinePromises_PropagatesCancellation_ToAllPromises()
+		{
+			// Create a cancellation token source
+			var cts = new CancellationTokenSource();
+    
+			// Create individual service promises with the cancellation token
+			var promise1 = _serviceLocator.GetService<TestService>(cts.Token);
+			var promise2 = _serviceLocator.GetService<AnotherTestService>(cts.Token);
+    
+			bool catchCalled = false;
+			bool promise1Caught = false;
+			bool promise2Caught = false;
+    
+			promise1.Catch(ex => {
+				promise1Caught = true;
+				Debug.Log("Promise 1 caught: " + ex.Message);
+			});
+    
+			promise2.Catch(ex => {
+				promise2Caught = true;
+				Debug.Log("Promise 2 caught: " + ex.Message);
+			});
+    
+			// Combine promises with the same cancellation token
+			var combinedPromise = ServicePromiseCombiner.CombinePromises(promise1, promise2, cts.Token);
+    
+			combinedPromise.Catch(ex => {
+				catchCalled = true;
+				Debug.Log($"Combined promise caught: {ex.GetType().Name} - {ex.Message}");
+			});
+    
+			yield return null;
+    
+			// Cancel the token
+			Debug.Log("Cancelling token");
+			cts.Cancel();
+    
+			// Wait for callbacks to be called
+			float timeoutTime = Time.time + 2.0f; // 2 second timeout
+			while ((!promise1Caught || !promise2Caught || !catchCalled) && Time.time < timeoutTime)
+			{
+				Debug.Log($"Waiting: promise1Caught={promise1Caught}, promise2Caught={promise2Caught}, combinedCaught={catchCalled}");
+				yield return null;
+			}
+    
+			// Final status check
+			Debug.Log($"Final status: promise1Caught={promise1Caught}, promise2Caught={promise2Caught}, combinedCaught={catchCalled}");
+    
+			// Assert
+			Assert.IsTrue(promise1Caught, "Individual promise 1 should handle cancellation");
+			Assert.IsTrue(promise2Caught, "Individual promise 2 should handle cancellation");
+			Assert.IsTrue(catchCalled, "Combined promise should handle cancellation");
+		}
+
+		[UnityTest]
+		public IEnumerator ServicePromise_WithCancellation_CancelsPromise()
+		{
+			// Create a cancellation token source
+			var cts = new CancellationTokenSource();
+			
+			// Get a service promise
+			var promise = _serviceLocator.GetService<TestService>();
+			
+			// Apply cancellation token manually
+			promise.WithCancellation(cts.Token);
+			
+			bool catchCalled = false;
+			promise.Catch(ex => {
+				catchCalled = true;
+				Assert.IsInstanceOf<TaskCanceledException>(ex, "Exception should be TaskCanceledException");
+			});
+			
+			yield return null;
+			
+			// Cancel the token
+			cts.Cancel();
+			
+			yield return new WaitUntil(() => catchCalled);
+			
+			Assert.IsTrue(catchCalled, "Catch should be called when WithCancellation token is canceled");
+		}
+
+		[UnityTest]
+		public IEnumerator GetService_CancellationToken_PropagatedToPromise()
+		{
+			// This test ensures that the GetService method correctly propagates the token
+			// to the ServicePromise via WithCancellation
+			
+			var cts = new CancellationTokenSource();
+			
+			var promise = _serviceLocator.GetService<TestService>(cts.Token);
+			
+			bool catchCalled = false;
+			promise.Catch(ex => {
+				catchCalled = true;
+				Assert.IsInstanceOf<TaskCanceledException>(ex, "Exception should be TaskCanceledException");
+			});
+			
+			yield return null;
+			
+			cts.Cancel();
+			
+			yield return new WaitUntil(() => catchCalled);
+			
+			Assert.IsTrue(catchCalled, "Catch should be called when token from GetService is canceled");
+		}
+
+		[UnityTest]
+		public IEnumerator LinkedCancellationToken_CancelsAllOperations()
+		{
+			// This test ensures that when one operation is canceled in a multi-service request,
+			// all other pending operations are canceled as well
+
+			// Create two cancellation tokens
+			var cts1 = new CancellationTokenSource();
+			var cts2 = new CancellationTokenSource();
+			
+			// Create a linked token with both sources
+			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts1.Token, cts2.Token);
+			
+			// Start multiple service requests with the linked token
+			var task = _serviceLocator.GetServicesAsync<TestService, AnotherTestService>(linkedCts.Token);
+			
+			yield return null;
+			
+			// Cancel just one of the tokens
+			cts1.Cancel();
+			
+			// Wait for the task to complete
+			yield return new WaitUntil(() => task.IsCompleted);
+			
+			// Assert that the task was canceled
+			Assert.IsTrue(task.IsCanceled, "Task should be canceled when any of the linked tokens is canceled");
+			Assert.ThrowsAsync<TaskCanceledException>(async () => await task, 
+				"GetServicesAsync should throw TaskCanceledException when a linked token is canceled");
+		}
 	}
 }

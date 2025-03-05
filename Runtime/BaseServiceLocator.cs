@@ -172,12 +172,23 @@ namespace Nonatomic.ServiceLocator
 			where T1 : class
 			where T2 : class
 		{
-			var task1 = GetServiceAsync<T1>(cancellation);
-			var task2 = GetServiceAsync<T2>(cancellation);
+			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+			var linkedToken = linkedCts.Token;
+    
+			try
+			{
+				var task1 = GetServiceAsync<T1>(linkedToken);
+				var task2 = GetServiceAsync<T2>(linkedToken);
 
-			await Task.WhenAll(task1, task2);
-
-			return (await task1, await task2);
+				await Task.WhenAll(task1, task2);
+				return (await task1, await task2);
+			}
+			catch (OperationCanceledException)
+			{
+				// If any task is canceled, cancel all related requests
+				linkedCts.Cancel();
+				throw;
+			}
 		}
 		
 		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
@@ -192,13 +203,24 @@ namespace Nonatomic.ServiceLocator
 			where T2 : class
 			where T3 : class
 		{
-			var task1 = GetServiceAsync<T1>(cancellation);
-			var task2 = GetServiceAsync<T2>(cancellation);
-			var task3 = GetServiceAsync<T3>(cancellation);
+			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+			var linkedToken = linkedCts.Token;
 
-			await Task.WhenAll(task1, task2, task3);
+			try
+			{
+				var task1 = GetServiceAsync<T1>(linkedToken);
+				var task2 = GetServiceAsync<T2>(linkedToken);
+				var task3 = GetServiceAsync<T3>(linkedToken);
 
-			return (await task1, await task2, await task3);
+				await Task.WhenAll(task1, task2, task3);
+				return (await task1, await task2, await task3);
+			}
+			catch (OperationCanceledException)
+			{
+				// If any task is canceled, cancel all related requests
+				linkedCts.Cancel();
+				throw;
+			}
 		}
 		
 		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
@@ -215,14 +237,25 @@ namespace Nonatomic.ServiceLocator
 			where T3 : class
 			where T4 : class
 		{
-			var task1 = GetServiceAsync<T1>(cancellation);
-			var task2 = GetServiceAsync<T2>(cancellation);
-			var task3 = GetServiceAsync<T3>(cancellation);
-			var task4 = GetServiceAsync<T4>(cancellation);
+			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+			var linkedToken = linkedCts.Token;
 
-			await Task.WhenAll(task1, task2, task3, task4);
+			try
+			{
+				var task1 = GetServiceAsync<T1>(linkedToken);
+				var task2 = GetServiceAsync<T2>(linkedToken);
+				var task3 = GetServiceAsync<T3>(linkedToken);
+				var task4 = GetServiceAsync<T4>(linkedToken);
 
-			return (await task1, await task2, await task3, await task4);
+				await Task.WhenAll(task1, task2, task3, task4);
+				return (await task1, await task2, await task3, await task4);
+			}
+			catch (OperationCanceledException)
+			{
+				// If any task is canceled, cancel all related requests
+				linkedCts.Cancel();
+				throw;
+			}
 		}
 		
 		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
@@ -241,15 +274,26 @@ namespace Nonatomic.ServiceLocator
 			where T4 : class
 			where T5 : class
 		{
-			var task1 = GetServiceAsync<T1>(cancellation);
-			var task2 = GetServiceAsync<T2>(cancellation);
-			var task3 = GetServiceAsync<T3>(cancellation);
-			var task4 = GetServiceAsync<T4>(cancellation);
-			var task5 = GetServiceAsync<T5>(cancellation);
+			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+			var linkedToken = linkedCts.Token;
 
-			await Task.WhenAll(task1, task2, task3, task4, task5);
+			try
+			{
+				var task1 = GetServiceAsync<T1>(linkedToken);
+				var task2 = GetServiceAsync<T2>(linkedToken);
+				var task3 = GetServiceAsync<T3>(linkedToken);
+				var task4 = GetServiceAsync<T4>(linkedToken);
+				var task5 = GetServiceAsync<T5>(linkedToken);
 
-			return (await task1, await task2, await task3, await task4, await task5);
+				await Task.WhenAll(task1, task2, task3, task4, task5);
+				return (await task1, await task2, await task3, await task4, await task5);
+			}
+			catch (OperationCanceledException)
+			{
+				// If any task is canceled, cancel all related requests
+				linkedCts.Cancel();
+				throw;
+			}
 		}
 		
 		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
@@ -270,16 +314,27 @@ namespace Nonatomic.ServiceLocator
 			where T5 : class
 			where T6 : class
 		{
-			var task1 = GetServiceAsync<T1>(cancellation);
-			var task2 = GetServiceAsync<T2>(cancellation);
-			var task3 = GetServiceAsync<T3>(cancellation);
-			var task4 = GetServiceAsync<T4>(cancellation);
-			var task5 = GetServiceAsync<T5>(cancellation);
-			var task6 = GetServiceAsync<T6>(cancellation);
+			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+			var linkedToken = linkedCts.Token;
 
-			await Task.WhenAll(task1, task2, task3, task4, task5, task6);
+			try
+			{
+				var task1 = GetServiceAsync<T1>(linkedToken);
+				var task2 = GetServiceAsync<T2>(linkedToken);
+				var task3 = GetServiceAsync<T3>(linkedToken);
+				var task4 = GetServiceAsync<T4>(linkedToken);
+				var task5 = GetServiceAsync<T5>(linkedToken);
+				var task6 = GetServiceAsync<T6>(linkedToken);
 
-			return (await task1, await task2, await task3, await task4, await task5, await task6);
+				await Task.WhenAll(task1, task2, task3, task4, task5, task6);
+				return (await task1, await task2, await task3, await task4, await task5, await task6);
+			}
+			catch (OperationCanceledException)
+			{
+				// If any task is canceled, cancel all related requests
+				linkedCts.Cancel();
+				throw;
+			}
 		}
 
 		/// <summary>
@@ -392,18 +447,23 @@ namespace Nonatomic.ServiceLocator
 
 				promise.BindTo(taskCompletion);
 
+				// Add this line to use the new cancellation capability
+				promise.WithCancellation(cancellation);
+
 				if (cancellation.CanBeCanceled)
 				{
 					cancellation.Register(() =>
 					{
 						lock (Lock)
 						{
-							if (taskList.Contains(taskCompletion))
+							if (!taskList.Contains(taskCompletion)) return;
+							
+							taskCompletion.TrySetCanceled();
+							taskList.Remove(taskCompletion);
+							
+							if (taskList.Count == 0)
 							{
-								taskCompletion.TrySetCanceled();
-								taskList.Remove(taskCompletion);
-								if (taskList.Count == 0)
-									PromiseMap.Remove(serviceType);
+								PromiseMap.Remove(serviceType);
 							}
 						}
 					});
@@ -417,17 +477,25 @@ namespace Nonatomic.ServiceLocator
 						{
 							taskList.Remove(taskCompletion);
 							if (taskList.Count == 0)
+							{
 								PromiseMap.Remove(serviceType);
+							}
 						}
 					}
 
 					if (task.IsCompletedSuccessfully)
+					{
 						promise.Resolve((T)task.Result);
+					}
 					else if (task.IsCanceled)
+					{
 						promise.Reject(new TaskCanceledException("Service retrieval was canceled"));
+					}
 					else if (task.IsFaulted)
+					{
 						promise.Reject(task.Exception ?? new Exception("Unknown error"));
-				});
+					}
+				}, cancellation);
 			}
 
 			return promise;

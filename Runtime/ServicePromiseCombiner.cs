@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Nonatomic.ServiceLocator
 {
@@ -7,13 +8,29 @@ namespace Nonatomic.ServiceLocator
 	{
 		private static IServicePromise<TResult> CombinePromisesInternal<TResult>(
 			IServicePromise<object>[] promises,
-			Func<object[], TResult> resultSelector)
+			Func<object[], TResult> resultSelector,
+			CancellationToken cancellation = default)
 		{
 			var resultPromise = new ServicePromise<TResult>();
 			var results = new object[promises.Length];
 			var resolvedCount = 0;
 			var isRejected = false;
 			var lockObj = new object();
+
+			// Create linked token that can be canceled either by the provided token or internally
+			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+			var linkedToken = linkedCts.Token;
+			
+			// Register cancellation callback
+			linkedToken.Register(() => {
+				lock (lockObj)
+				{
+					if (isRejected) return;
+					
+					isRejected = true;
+					resultPromise.Reject(new TaskCanceledException("Combined promise operation was canceled"));
+				}
+			});
 
 			for (var i = 0; i < promises.Length; i++)
 			{
@@ -28,11 +45,10 @@ namespace Nonatomic.ServiceLocator
 					{
 						lock (lockObj)
 						{
-							if (!isRejected)
-							{
-								isRejected = true;
-								resultPromise.Reject(ex);
-							}
+							if (isRejected) return;
+							
+							isRejected = true;
+							resultPromise.Reject(ex);
 						}
 					});
 			}
@@ -41,39 +57,42 @@ namespace Nonatomic.ServiceLocator
 
 			void CheckAllResolved()
 			{
-				if (Interlocked.Increment(ref resolvedCount) == promises.Length)
+				if (Interlocked.Increment(ref resolvedCount) != promises.Length) return;
+				
+				try
 				{
-					try
-					{
-						var finalResult = resultSelector(results);
-						resultPromise.Resolve(finalResult);
-					}
-					catch (Exception ex)
-					{
-						resultPromise.Reject(ex);
-					}
+					var finalResult = resultSelector(results);
+					resultPromise.Resolve(finalResult);
+				}
+				catch (Exception ex)
+				{
+					resultPromise.Reject(ex);
 				}
 			}
 		}
 
 		public static IServicePromise<(T1, T2)> CombinePromises<T1, T2>(
 			IServicePromise<T1> p1,
-			IServicePromise<T2> p2)
+			IServicePromise<T2> p2,
+			CancellationToken cancellation = default)
 		{
 			return CombinePromisesInternal(
 				new IServicePromise<object>[] { p1.AsObjectPromise(), p2.AsObjectPromise() },
-				results => ((T1)results[0], (T2)results[1])
+				results => ((T1)results[0], (T2)results[1]),
+				cancellation
 			);
 		}
 
 		public static IServicePromise<(T1, T2, T3)> CombinePromises<T1, T2, T3>(
 			IServicePromise<T1> p1,
 			IServicePromise<T2> p2,
-			IServicePromise<T3> p3)
+			IServicePromise<T3> p3,
+			CancellationToken cancellation = default)
 		{
 			return CombinePromisesInternal(
 				new IServicePromise<object>[] { p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise() },
-				results => ((T1)results[0], (T2)results[1], (T3)results[2])
+				results => ((T1)results[0], (T2)results[1], (T3)results[2]),
+				cancellation
 			);
 		}
 
@@ -81,11 +100,13 @@ namespace Nonatomic.ServiceLocator
 			IServicePromise<T1> p1,
 			IServicePromise<T2> p2,
 			IServicePromise<T3> p3,
-			IServicePromise<T4> p4)
+			IServicePromise<T4> p4,
+			CancellationToken cancellation = default)
 		{
 			return CombinePromisesInternal(
 				new IServicePromise<object>[] { p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise(), p4.AsObjectPromise() },
-				results => ((T1)results[0], (T2)results[1], (T3)results[2], (T4)results[3])
+				results => ((T1)results[0], (T2)results[1], (T3)results[2], (T4)results[3]),
+				cancellation
 			);
 		}
 		
@@ -94,11 +115,13 @@ namespace Nonatomic.ServiceLocator
 			IServicePromise<T2> p2,
 			IServicePromise<T3> p3,
 			IServicePromise<T4> p4,
-			IServicePromise<T5> p5)
+			IServicePromise<T5> p5,
+			CancellationToken cancellation = default)
 		{
 			return CombinePromisesInternal(
 				new IServicePromise<object>[] { p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise(), p4.AsObjectPromise(), p5.AsObjectPromise() },
-				results => ((T1)results[0], (T2)results[1], (T3)results[2], (T4)results[3], (T5)results[4])
+				results => ((T1)results[0], (T2)results[1], (T3)results[2], (T4)results[3], (T5)results[4]),
+				cancellation
 			);
 		}
 		
@@ -108,11 +131,13 @@ namespace Nonatomic.ServiceLocator
 			IServicePromise<T3> p3,
 			IServicePromise<T4> p4,
 			IServicePromise<T5> p5,
-			IServicePromise<T6> p6)
+			IServicePromise<T6> p6,
+			CancellationToken cancellation = default)
 		{
 			return CombinePromisesInternal(
 				new IServicePromise<object>[] { p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise(), p4.AsObjectPromise(), p5.AsObjectPromise(), p6.AsObjectPromise() },
-				results => ((T1)results[0], (T2)results[1], (T3)results[2], (T4)results[3], (T5)results[4], (T6)results[5])
+				results => ((T1)results[0], (T2)results[1], (T3)results[2], (T4)results[3], (T5)results[4], (T6)results[5]),
+				cancellation
 			);
 		}
 	}

@@ -1,5 +1,11 @@
 # Change Log
 
+## [0.7.1] - Mar 05, 2025
+- Added support for combined cancellation tokens that ensures all tasks and promises are cancelled when the token is cancelled
+- Added additional unit tests to ensure cancellation tokens are working as expected
+- Added the WithCancellation method to the ServicePromise to allow for the cancellation of a promise
+- Updated the Readme with additional information on cancellation tokens
+
 ## [0.7.0] - Mar 02, 2025
 - Added support for Cancellation Tokens to the GetServiceAsync method
 - Added support for RejectService method to allow for the rejection of a service promises and Tasks with propogated exceptions
