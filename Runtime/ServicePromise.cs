@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Nonatomic.ServiceLocator
@@ -11,6 +12,7 @@ namespace Nonatomic.ServiceLocator
 		private bool _isRejected;
 		private readonly TaskCompletionSource<T> _taskCompletion = new();
 		private TaskCompletionSource<object> _innerTaskCompletion;
+		private CancellationTokenRegistration? _cancellationRegistration;
 
 		public void BindTo(TaskCompletionSource<object> taskCompletion)
 		{
@@ -25,6 +27,21 @@ namespace Nonatomic.ServiceLocator
 			_isResolved = true;
 			_taskCompletion.TrySetResult(value);
 			_innerTaskCompletion?.TrySetResult(value); 
+		}
+		
+		public void WithCancellation(CancellationToken cancellationToken)
+		{
+			if (cancellationToken.CanBeCanceled)
+			{
+				_cancellationRegistration = cancellationToken.Register(() => {
+					Reject(new TaskCanceledException("Service promise was canceled"));
+				});
+			}
+		}
+    
+		public void Dispose()
+		{
+			_cancellationRegistration?.Dispose();
 		}
 
 		public void Reject(Exception ex)
