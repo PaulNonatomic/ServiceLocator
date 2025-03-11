@@ -1,7 +1,22 @@
-# ServiceLocator
+<div align=center>   
 
-## Overview
+<p align="center">
+  <img src="Readme~\logo.png" width="250">
+</p>
+
+### A flexible & efficient way to manage and access services in <a href="https://unity.com/">Unity</a>
+
 ServiceLocator is a Unity package that provides a flexible and efficient way to manage and access services throughout your Unity application. It's based on a ScriptableObject implementation, offering various methods for registering, unregistering, and retrieving services.
+
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PullRequests](https://img.shields.io/badge/PRs-welcome-blueviolet)](http://makeapullrequest.com)
+[![Releases](https://img.shields.io/github/v/release/PaulNonatomic/ServiceLocator)](https://github.com/PaulNonatomic/ServiceLocator/releases)
+[![Unity](https://img.shields.io/badge/Unity-2022.3+-black.svg)](https://unity3d.com/pt/get-unity/download/archive)
+
+</div>
+
+---
 
 ## Installation
 To install ServiceLocator in your Unity project, add the package from the git URL: https://github.com/PaulNonatomic/ServiceLocator.git using the Unity package manager.
