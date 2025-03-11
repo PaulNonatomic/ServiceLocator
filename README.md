@@ -6,7 +6,7 @@
 
 ### A flexible & efficient way to manage and access services in <a href="https://unity.com/">Unity</a>
 
-ServiceLocator is a Unity package that provides a flexible and efficient way to manage and access services throughout your Unity application. It's based on a ScriptableObject implementation, offering various methods for registering, unregistering, and retrieving services.
+ServiceLocator is based on a ScriptableObject implementation, offering various methods for registering, unregistering, and retrieving services.
 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
