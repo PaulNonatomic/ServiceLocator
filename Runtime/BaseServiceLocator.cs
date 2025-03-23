@@ -16,12 +16,37 @@ namespace Nonatomic.ServiceLocator
 	/// </summary>
 	public abstract class BaseServiceLocator : ScriptableObject
 	{
+		public event Action? OnChange;
 		public bool IsInitialized { get; protected set; } = false;
 
 		protected readonly Dictionary<Type, object> ServiceMap = new();
-		protected readonly Dictionary<Type, List<TaskCompletionSource<object>>> PromiseMap = new(); // Changed to List
+		protected readonly Dictionary<Type, List<TaskCompletionSource<object>>> PromiseMap = new();
+		protected readonly Dictionary<Type, string> ServiceSceneMap = new();
 		protected readonly List<(Type, Action<object>)> PendingCoroutines = new();
 		protected readonly object Lock = new();
+		
+		/// <summary>
+		/// Returns a dictionary containing all currently registered services.
+		/// </summary>
+		/// <returns>A dictionary with service types as keys and service instances as values.</returns>
+		public virtual IReadOnlyDictionary<Type, object> GetAllServices()
+		{
+			lock (Lock)
+			{
+				// Return a copy of the service map to avoid potential threading issues
+				return new Dictionary<Type, object>(ServiceMap);
+			}
+		}
+		
+		public virtual string GetSceneNameForService(Type serviceType)
+		{
+			lock (Lock)
+			{
+				return ServiceSceneMap.TryGetValue(serviceType, out var sceneName) 
+					? sceneName 
+					: "No Scene";
+			}
+		}
 
 		/// <summary>
 		/// Manually cleans up all unfulfilled promises.
@@ -75,10 +100,21 @@ namespace Nonatomic.ServiceLocator
 			lock (Lock)
 			{
 				if (service == null)
+				{
 					throw new ArgumentNullException("service", "Cannot register a null service.");
-            
+				}
+
 				var serviceType = typeof(T);
 				ServiceMap[serviceType] = service;
+				
+				// Track scene information for this service
+				var sceneName = "No Scene";
+				if (service is MonoBehaviour monoBehaviour)
+				{
+					sceneName = monoBehaviour.gameObject.scene.name;
+				}
+		
+				ServiceSceneMap[serviceType] = sceneName;
 
 				if (PromiseMap.TryGetValue(serviceType, out var taskCompletions))
 				{
@@ -95,7 +131,14 @@ namespace Nonatomic.ServiceLocator
 					callback(service);
 				}
 				PendingCoroutines.RemoveAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
+
+				NotifyChange();
 			}
+		}
+
+		protected virtual void NotifyChange()
+		{
+			OnChange?.Invoke();
 		}
 
 		/// <summary>
@@ -109,7 +152,10 @@ namespace Nonatomic.ServiceLocator
 		{
 			lock (Lock)
 			{
-				ServiceMap.Remove(typeof(T));
+				var serviceType = typeof(T);
+				ServiceMap.Remove(serviceType);
+				ServiceSceneMap.Remove(serviceType);
+				NotifyChange();
 			}
 		}
 
@@ -174,7 +220,7 @@ namespace Nonatomic.ServiceLocator
 		{
 			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
 			var linkedToken = linkedCts.Token;
-    
+	
 			try
 			{
 				var task1 = GetServiceAsync<T1>(linkedToken);
@@ -582,9 +628,12 @@ namespace Nonatomic.ServiceLocator
 					}
 				}
 				
+				ServiceSceneMap.Clear();
 				ServiceMap.Clear();
 				CleanupPromises();
+				
 				CancelPendingCoroutines();
+				NotifyChange();
 			}
 		}
 
@@ -594,10 +643,8 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		protected virtual void OnEnable()
 		{
-			if (!IsInitialized)
-			{
-				Initialize();
-			}
+			if (IsInitialized) return;
+			Initialize();
 		}
 
 		/// <summary>
@@ -606,6 +653,7 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		protected virtual void OnDisable()
 		{
+			if (!IsInitialized) return;
 			DeInitialize();
 		}
 
@@ -614,6 +662,12 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		protected virtual void Initialize()
 		{
+			if (IsInitialized) return;
+			
+			#if UNITY_EDITOR
+			UnityEditor.EditorApplication.playModeStateChanged += HandlePlayModeStateChanged;
+			#endif
+			
 			SceneManager.sceneUnloaded += OnSceneUnloaded;
 			IsInitialized = true;
 		}
@@ -623,9 +677,16 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		protected virtual void DeInitialize()
 		{
+			if (!IsInitialized) return;
+			
+			#if UNITY_EDITOR
+			UnityEditor.EditorApplication.playModeStateChanged -= HandlePlayModeStateChanged;
+			#endif
+			
 			SceneManager.sceneUnloaded -= OnSceneUnloaded;
-			IsInitialized = false;
 			Cleanup();
+			
+			IsInitialized = false;
 		}
 
 		/// <summary>
@@ -651,9 +712,31 @@ namespace Nonatomic.ServiceLocator
 		{
 			lock (Lock)
 			{
+				// Just clean up promises and coroutines, but keep the scene map
 				CleanupPromises();
 				CancelPendingCoroutines();
+		
+				// Log which services are from the unloaded scene
+				var servicesFromUnloadedScene = ServiceSceneMap
+					.Where(kvp => kvp.Value == scene.name)
+					.Select(kvp => kvp.Key.Name)
+					.ToList();
+			
+				if (servicesFromUnloadedScene.Any())
+				{
+					Debug.Log($"Scene {scene.name} unloaded but these services remain: {string.Join(", ", servicesFromUnloadedScene)}");
+					NotifyChange();
+				}
 			}
 		}
+
+		#if UNITY_EDITOR
+		protected virtual void HandlePlayModeStateChanged(UnityEditor.PlayModeStateChange state)
+		{
+			if (state != UnityEditor.PlayModeStateChange.ExitingPlayMode) return;
+			DeInitialize();
+		}
+		#endif
+		
 	}
 }

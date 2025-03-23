@@ -1,0 +1,116 @@
+/* ServiceLocatorWindowStyles.uss */
+
+.service-locator-window {
+    padding: 10px;
+}
+
+.header {
+    font-size: 16px;
+    -unity-font-style: bold;
+    margin-bottom: 10px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(0, 0, 0, 0.2);
+    padding-bottom: 5px;
+}
+
+.locator-header {
+    font-size: 14px;
+    -unity-font-style: bold;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    padding: 7px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.scene-header {
+    font-size: 14px;
+    -unity-font-style: bold;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    padding-left: 5px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.service-label {
+    font-size: 12px;
+    -unity-font-style: bold;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    padding-left: 5px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.locator-item {
+    margin-left: 15px;
+    margin-bottom: 2px;
+    padding: 2px;
+    border-radius: 3px;
+}
+
+.service-item {
+    margin-left: 15px;
+    margin-bottom: 2px;
+    padding: 2px;
+    border-radius: 3px;
+}
+
+.service-item:hover {
+    background-color: rgba(0, 100, 255, 0.1);
+}
+
+.service-type {
+    -unity-font-style: bold;
+}
+
+.no-services-message {
+    margin-top: 20px;
+    color: rgba(0, 0, 0, 0.5);
+    -unity-text-align: center;
+}
+
+.refresh-button {
+    margin-top: 10px;
+    align-self: center;
+}
+
+.ping-button {
+    height: 20px;
+    padding: 2px 8px;
+    margin-right: 5px;
+    font-size: 10px;
+    border-radius: 3px;
+    background-color: rgba(0, 180, 0, 0.1);
+}
+
+.ping-button:hover {
+    background-color: rgba(0, 180, 0, 0.2);
+}
+
+.open-script-button {
+    height: 20px;
+    padding: 2px 8px;
+    margin-right: 5px;
+    font-size: 10px;
+    border-radius: 3px;
+    background-color: rgba(0, 100, 255, 0.1);
+}
+
+.open-script-button:hover {
+    background-color: rgba(0, 100, 255, 0.2);
+}
+
+.unloaded-scene {
+    color: #FF6B6B;
+}
+
+.unloaded-scene > .unity-toggle__text {
+    color: #FF6B6B;
+    -unity-font-style: italic;
+}
+
+.unloaded-scene > .unity-toggle__input:checked {
+    background-color: rgba(255, 107, 107, 0.2);
+}
