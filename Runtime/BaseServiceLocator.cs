@@ -12,7 +12,6 @@ namespace Nonatomic.ServiceLocator
 {
 	/// <summary>
 	/// A ScriptableObject-based service locator for managing and accessing services throughout the application.
-	/// This class provides various methods for registering, unregistering, and retrieving services.
 	/// </summary>
 	public abstract class BaseServiceLocator : ScriptableObject
 	{
@@ -28,31 +27,30 @@ namespace Nonatomic.ServiceLocator
 		/// <summary>
 		/// Returns a dictionary containing all currently registered services.
 		/// </summary>
-		/// <returns>A dictionary with service types as keys and service instances as values.</returns>
 		public virtual IReadOnlyDictionary<Type, object> GetAllServices()
 		{
 			lock (Lock)
 			{
-				// Return a copy of the service map to avoid potential threading issues
 				return new Dictionary<Type, object>(ServiceMap);
 			}
 		}
 		
+		/// <summary>
+		/// Returns the scene name associated with a service type.
+		/// </summary>
 		public virtual string GetSceneNameForService(Type serviceType)
 		{
 			lock (Lock)
 			{
-				return ServiceSceneMap.TryGetValue(serviceType, out var sceneName) 
-					? sceneName 
-					: "No Scene";
+				if (!ServiceSceneMap.TryGetValue(serviceType, out var sceneName))
+					return "No Scene";
+				
+				return sceneName;
 			}
 		}
 
 		/// <summary>
-		/// Manually cleans up all unfulfilled promises.
-		/// </summary>
-		/// <summary>
-		/// Manually cleans up all unfulfilled promises.
+		/// Cancels and removes all unfulfilled promises.
 		/// </summary>
 		public virtual void CleanupPromises()
 		{
@@ -69,6 +67,9 @@ namespace Nonatomic.ServiceLocator
 			}
 		}
 		
+		/// <summary>
+		/// Rejects all pending promises for a specific service type with an exception.
+		/// </summary>
 		public virtual void RejectService<T>(Exception exception) where T : class
 		{
 			if (exception == null) throw new ArgumentNullException(nameof(exception));
@@ -76,14 +77,14 @@ namespace Nonatomic.ServiceLocator
 			lock (Lock)
 			{
 				var serviceType = typeof(T);
-				if (PromiseMap.TryGetValue(serviceType, out var taskList))
+				if (!PromiseMap.TryGetValue(serviceType, out var taskList)) 
+					return;
+				
+				foreach (var tcs in taskList.ToList())
 				{
-					foreach (var tcs in taskList.ToList())
-					{
-						tcs.TrySetException(exception);
-					}
-					PromiseMap.Remove(serviceType);
+					tcs.TrySetException(exception);
 				}
+				PromiseMap.Remove(serviceType);
 			}
 		}
 
@@ -92,17 +93,12 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		/// <typeparam name="T">The type of the service being registered.</typeparam>
 		/// <param name="service">The instance of the service to register.</param>
-		/// <remarks>
-		/// If there are any pending promises for this service type, they will be resolved.
-		/// </remarks>
 		public virtual void Register<T>(T service) where T : class
 		{
 			lock (Lock)
 			{
 				if (service == null)
-				{
 					throw new ArgumentNullException("service", "Cannot register a null service.");
-				}
 
 				var serviceType = typeof(T);
 				ServiceMap[serviceType] = service;
@@ -110,21 +106,21 @@ namespace Nonatomic.ServiceLocator
 				// Track scene information for this service
 				var sceneName = "No Scene";
 				if (service is MonoBehaviour monoBehaviour)
-				{
 					sceneName = monoBehaviour.gameObject.scene.name;
-				}
-		
+				
 				ServiceSceneMap[serviceType] = sceneName;
 
+				// Resolve any pending promises for this service
 				if (PromiseMap.TryGetValue(serviceType, out var taskCompletions))
 				{
-					foreach (var tcs in taskCompletions.ToList()) // ToList to avoid modification issues
+					foreach (var tcs in taskCompletions.ToList())
 					{
 						tcs.TrySetResult(service);
 					}
 					PromiseMap.Remove(serviceType);
 				}
 
+				// Notify any pending coroutines
 				var pendingCoroutines = PendingCoroutines.FindAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
 				foreach (var (_, callback) in pendingCoroutines)
 				{
@@ -136,6 +132,9 @@ namespace Nonatomic.ServiceLocator
 			}
 		}
 
+		/// <summary>
+		/// Invokes the OnChange event.
+		/// </summary>
 		protected virtual void NotifyChange()
 		{
 			OnChange?.Invoke();
@@ -145,9 +144,6 @@ namespace Nonatomic.ServiceLocator
 		/// Unregisters a service from the service locator.
 		/// </summary>
 		/// <typeparam name="T">The type of the service to unregister.</typeparam>
-		/// <remarks>
-		/// This method only removes the service from the ServiceMap. It does not affect any pending promises.
-		/// </remarks>
 		public virtual void Unregister<T>() where T : class
 		{
 			lock (Lock)
@@ -155,6 +151,19 @@ namespace Nonatomic.ServiceLocator
 				var serviceType = typeof(T);
 				ServiceMap.Remove(serviceType);
 				ServiceSceneMap.Remove(serviceType);
+				
+				// Reject any pending promises for this service
+				if (PromiseMap.TryGetValue(serviceType, out var taskList))
+				{
+					foreach (var tcs in taskList.ToList())
+					{
+						tcs.TrySetException(new ObjectDisposedException(
+							serviceType.Name,
+							$"Service {serviceType.Name} was unregistered while waiting for it to be available"));
+					}
+					PromiseMap.Remove(serviceType);
+				}
+				
 				NotifyChange();
 			}
 		}
@@ -164,9 +173,6 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		/// <typeparam name="T">The type of service to retrieve.</typeparam>
 		/// <returns>A Task that resolves to the requested service instance.</returns>
-		/// <remarks>
-		/// If the service is not yet registered, this method will wait until it becomes available.
-		/// </remarks>
 		public virtual async Task<T> GetServiceAsync<T>(CancellationToken cancellation = default) where T : class
 		{
 			var serviceType = typeof(T);
@@ -175,9 +181,7 @@ namespace Nonatomic.ServiceLocator
 			lock (Lock)
 			{
 				if (ServiceMap.TryGetValue(serviceType, out var service))
-				{
 					return (T)service;
-				}
 
 				taskCompletion = new TaskCompletionSource<object>();
 				if (!PromiseMap.TryGetValue(serviceType, out var taskList))
@@ -194,11 +198,13 @@ namespace Nonatomic.ServiceLocator
 				{
 					lock (Lock)
 					{
-						if (!PromiseMap.TryGetValue(serviceType, out var taskList) || !taskList.Contains(taskCompletion)) return;
+						if (!PromiseMap.TryGetValue(serviceType, out var taskList) || !taskList.Contains(taskCompletion)) 
+							return;
 						
 						taskCompletion.TrySetCanceled();
 						taskList.Remove(taskCompletion);
-						if (taskList.Count != 0) return;
+						if (taskList.Count != 0) 
+							return;
 						
 						PromiseMap.Remove(serviceType);
 					}
@@ -208,12 +214,17 @@ namespace Nonatomic.ServiceLocator
 			return (T)await taskCompletion.Task;
 		}
 
-		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
+		/// <summary>
+		/// Asynchronously retrieves two services of the specified types.
+		/// </summary>
 		public virtual Task<(T1, T2)> GetServiceAsync<T1, T2>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class 
 			=> GetServicesAsync<T1, T2>(cancellation);
 
+		/// <summary>
+		/// Asynchronously retrieves two services of the specified types.
+		/// </summary>
 		public virtual async Task<(T1, T2)> GetServicesAsync<T1, T2>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class
@@ -231,19 +242,23 @@ namespace Nonatomic.ServiceLocator
 			}
 			catch (OperationCanceledException)
 			{
-				// If any task is canceled, cancel all related requests
 				linkedCts.Cancel();
 				throw;
 			}
 		}
 		
-		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
+		/// <summary>
+		/// Asynchronously retrieves three services of the specified types.
+		/// </summary>
 		public virtual Task<(T1, T2, T3)> GetServiceAsync<T1, T2, T3>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class 
 			where T3 : class 
 			=> GetServicesAsync<T1, T2, T3>(cancellation);
 		
+		/// <summary>
+		/// Asynchronously retrieves three services of the specified types.
+		/// </summary>
 		public virtual async Task<(T1, T2, T3)> GetServicesAsync<T1, T2, T3>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class
@@ -263,13 +278,14 @@ namespace Nonatomic.ServiceLocator
 			}
 			catch (OperationCanceledException)
 			{
-				// If any task is canceled, cancel all related requests
 				linkedCts.Cancel();
 				throw;
 			}
 		}
 		
-		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
+		/// <summary>
+		/// Asynchronously retrieves four services of the specified types.
+		/// </summary>
 		public virtual Task<(T1, T2, T3, T4)> GetServiceAsync<T1, T2, T3, T4>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class 
@@ -277,6 +293,9 @@ namespace Nonatomic.ServiceLocator
 			where T4 : class 
 			=> GetServicesAsync<T1, T2, T3, T4>(cancellation);
 		
+		/// <summary>
+		/// Asynchronously retrieves four services of the specified types.
+		/// </summary>
 		public virtual async Task<(T1, T2, T3, T4)> GetServicesAsync<T1, T2, T3, T4>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class
@@ -298,13 +317,14 @@ namespace Nonatomic.ServiceLocator
 			}
 			catch (OperationCanceledException)
 			{
-				// If any task is canceled, cancel all related requests
 				linkedCts.Cancel();
 				throw;
 			}
 		}
 		
-		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
+		/// <summary>
+		/// Asynchronously retrieves five services of the specified types.
+		/// </summary>
 		public virtual Task<(T1, T2, T3, T4, T5)> GetServiceAsync<T1, T2, T3, T4, T5>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class 
@@ -313,6 +333,9 @@ namespace Nonatomic.ServiceLocator
 			where T5 : class 
 			=> GetServicesAsync<T1, T2, T3, T4, T5>(cancellation);
 		
+		/// <summary>
+		/// Asynchronously retrieves five services of the specified types.
+		/// </summary>
 		public virtual async Task<(T1, T2, T3, T4, T5)> GetServicesAsync<T1, T2, T3, T4, T5>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class
@@ -336,13 +359,14 @@ namespace Nonatomic.ServiceLocator
 			}
 			catch (OperationCanceledException)
 			{
-				// If any task is canceled, cancel all related requests
 				linkedCts.Cancel();
 				throw;
 			}
 		}
 		
-		//Syntactic sugar for adding additional services to an existing GetServiceAsync call
+		/// <summary>
+		/// Asynchronously retrieves six services of the specified types.
+		/// </summary>
 		public virtual Task<(T1, T2, T3, T4, T5, T6)> GetServiceAsync<T1, T2, T3, T4, T5, T6>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class 
@@ -352,6 +376,9 @@ namespace Nonatomic.ServiceLocator
 			where T6 : class 
 			=> GetServicesAsync<T1, T2, T3, T4, T5, T6>(cancellation);
 		
+		/// <summary>
+		/// Asynchronously retrieves six services of the specified types.
+		/// </summary>
 		public virtual async Task<(T1, T2, T3, T4, T5, T6)> GetServicesAsync<T1, T2, T3, T4, T5, T6>(CancellationToken cancellation = default)
 			where T1 : class
 			where T2 : class
@@ -377,7 +404,6 @@ namespace Nonatomic.ServiceLocator
 			}
 			catch (OperationCanceledException)
 			{
-				// If any task is canceled, cancel all related requests
 				linkedCts.Cancel();
 				throw;
 			}
@@ -395,13 +421,11 @@ namespace Nonatomic.ServiceLocator
 
 			lock (Lock)
 			{
-				if (ServiceMap.TryGetValue(typeof(T), out var result) && result is T typedService)
-				{
-					service = typedService;
-					return true;
-				}
-
-				return false;
+				if (!ServiceMap.TryGetValue(typeof(T), out var result) || result is not T typedService)
+					return false;
+				
+				service = typedService;
+				return true;
 			}
 		}
 
@@ -440,10 +464,10 @@ namespace Nonatomic.ServiceLocator
 						callback((T)service);
 						yield break;
 					}
-					// Check if the coroutine is still pending after cleanup
+					
 					if (!PendingCoroutines.Any(x => x.Item1 == serviceType && x.Item2 == wrappedCallback))
 					{
-						isPending = false; // Exit if cleaned up
+						isPending = false;
 						yield break;
 					}
 				}
@@ -466,10 +490,6 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		/// <typeparam name="T">The type of service to retrieve.</typeparam>
 		/// <returns>An IServicePromise that will resolve with the requested service.</returns>
-		/// <remarks>
-		/// If the service is already registered, the promise will resolve immediately.
-		/// If not, it will resolve when the service is registered in the future.
-		/// </remarks>
 		public virtual IServicePromise<T> GetService<T>(CancellationToken cancellation = default) where T : class
 		{
 			var promise = new ServicePromise<T>();
@@ -492,8 +512,6 @@ namespace Nonatomic.ServiceLocator
 				taskList.Add(taskCompletion);
 
 				promise.BindTo(taskCompletion);
-
-				// Add this line to use the new cancellation capability
 				promise.WithCancellation(cancellation);
 
 				if (cancellation.CanBeCanceled)
@@ -502,15 +520,16 @@ namespace Nonatomic.ServiceLocator
 					{
 						lock (Lock)
 						{
-							if (!taskList.Contains(taskCompletion)) return;
+							if (!taskList.Contains(taskCompletion)) 
+								return;
 							
 							taskCompletion.TrySetCanceled();
 							taskList.Remove(taskCompletion);
 							
-							if (taskList.Count == 0)
-							{
-								PromiseMap.Remove(serviceType);
-							}
+							if (taskList.Count != 0) 
+								return;
+							
+							PromiseMap.Remove(serviceType);
 						}
 					});
 				}
@@ -547,6 +566,9 @@ namespace Nonatomic.ServiceLocator
 			return promise;
 		}
 		
+		/// <summary>
+		/// Retrieves two services using a promise-based approach.
+		/// </summary>
 		public virtual IServicePromise<(T1, T2)> GetService<T1, T2>(CancellationToken token = default)
 			where T1 : class
 			where T2 : class
@@ -556,6 +578,9 @@ namespace Nonatomic.ServiceLocator
 				GetService<T2>(token));
 		}
 
+		/// <summary>
+		/// Retrieves three services using a promise-based approach.
+		/// </summary>
 		public virtual IServicePromise<(T1, T2, T3)> GetService<T1, T2, T3>(CancellationToken token = default)
 			where T1 : class
 			where T2 : class
@@ -567,6 +592,9 @@ namespace Nonatomic.ServiceLocator
 				GetService<T3>(token));
 		}
 		
+		/// <summary>
+		/// Retrieves four services using a promise-based approach.
+		/// </summary>
 		public virtual IServicePromise<(T1, T2, T3, T4)> GetService<T1, T2, T3, T4>(CancellationToken token = default)
 			where T1 : class
 			where T2 : class
@@ -580,6 +608,9 @@ namespace Nonatomic.ServiceLocator
 				GetService<T4>(token));
 		}
 		
+		/// <summary>
+		/// Retrieves five services using a promise-based approach.
+		/// </summary>
 		public virtual IServicePromise<(T1, T2, T3, T4, T5)> GetService<T1, T2, T3, T4, T5>(CancellationToken token = default)
 			where T1 : class
 			where T2 : class
@@ -595,6 +626,9 @@ namespace Nonatomic.ServiceLocator
 				GetService<T5>(token));
 		}
 		
+		/// <summary>
+		/// Retrieves six services using a promise-based approach.
+		/// </summary>
 		public virtual IServicePromise<(T1, T2, T3, T4, T5, T6)> GetService<T1, T2, T3, T4, T5, T6>(CancellationToken token = default)
 			where T1 : class
 			where T2 : class
@@ -613,13 +647,12 @@ namespace Nonatomic.ServiceLocator
 		}
 
 		/// <summary>
-		/// Cleans up the ServiceLocator, clearing services, promises, and coroutines without affecting initialization state.
+		/// Cleans up the ServiceLocator, clearing services, promises, and coroutines.
 		/// </summary>
 		public virtual void Cleanup()
 		{
 			lock (Lock)
 			{
-				//Dispose all disposable services
 				foreach(var service in ServiceMap.Values)
 				{
 					if (service is IDisposable disposable)
@@ -638,52 +671,56 @@ namespace Nonatomic.ServiceLocator
 		}
 
 		/// <summary>
-		/// Initializes the ServiceLocator when the ScriptableObject is enabled.
-		/// This method is called when the ScriptableObject is loaded or when entering play mode.
+		/// Initializes the ServiceLocator when enabled.
 		/// </summary>
 		protected virtual void OnEnable()
 		{
-			if (IsInitialized) return;
+			if (IsInitialized) 
+				return;
+			
 			Initialize();
 		}
 
 		/// <summary>
-		/// Cleans up the ServiceLocator when the ScriptableObject is disabled.
-		/// This method is called when the ScriptableObject is unloaded or when exiting play mode.
+		/// Cleans up the ServiceLocator when disabled.
 		/// </summary>
 		protected virtual void OnDisable()
 		{
-			if (!IsInitialized) return;
+			if (!IsInitialized) 
+				return;
+			
 			DeInitialize();
 		}
 
 		/// <summary>
-		/// Initializes the ServiceLocator, setting up scene-based cleanup.
+		/// Initializes the ServiceLocator.
 		/// </summary>
 		protected virtual void Initialize()
 		{
-			if (IsInitialized) return;
+			if (IsInitialized) 
+				return;
 			
 			#if UNITY_EDITOR
 			UnityEditor.EditorApplication.playModeStateChanged += HandlePlayModeStateChanged;
 			#endif
 			
-			SceneManager.sceneUnloaded += OnSceneUnloaded;
+			SceneManager.sceneUnloaded += HandleSceneUnloaded;
 			IsInitialized = true;
 		}
 
 		/// <summary>
-		/// Fully de-initializes the ServiceLocator, clearing all data and resetting its state.
+		/// De-initializes the ServiceLocator.
 		/// </summary>
 		protected virtual void DeInitialize()
 		{
-			if (!IsInitialized) return;
+			if (!IsInitialized) 
+				return;
 			
 			#if UNITY_EDITOR
 			UnityEditor.EditorApplication.playModeStateChanged -= HandlePlayModeStateChanged;
 			#endif
 			
-			SceneManager.sceneUnloaded -= OnSceneUnloaded;
+			SceneManager.sceneUnloaded -= HandleSceneUnloaded;
 			Cleanup();
 			
 			IsInitialized = false;
@@ -706,37 +743,66 @@ namespace Nonatomic.ServiceLocator
 		}
 
 		/// <summary>
-		/// Cleans up promises when a scene is unloaded.
+		/// Handles when a scene is unloaded.
 		/// </summary>
-		protected virtual void OnSceneUnloaded(Scene scene)
+		protected virtual void HandleSceneUnloaded(Scene scene)
 		{
 			lock (Lock)
 			{
-				// Just clean up promises and coroutines, but keep the scene map
-				CleanupPromises();
-				CancelPendingCoroutines();
+				UnregisterServicesFromScene(scene.name);
+			}
+		}
 		
-				// Log which services are from the unloaded scene
-				var servicesFromUnloadedScene = ServiceSceneMap
-					.Where(kvp => kvp.Value == scene.name)
-					.Select(kvp => kvp.Key.Name)
+		/// <summary>
+		/// Unregisters all services that belong to a specific scene that has been unloaded.
+		/// </summary>
+		/// <param name="sceneName">The name of the unloaded scene.</param>
+		public virtual void UnregisterServicesFromScene(string sceneName)
+		{
+			lock (Lock)
+			{
+				var servicesToRemove = ServiceSceneMap
+					.Where(kvp => kvp.Value == sceneName)
+					.Select(kvp => kvp.Key)
 					.ToList();
-			
-				if (servicesFromUnloadedScene.Any())
+
+				if (servicesToRemove.Count == 0) return;
+				
+				Debug.LogWarning($"Detected: {servicesToRemove.Count} services remain in unloaded scene: {sceneName}");
+				
+				foreach (var serviceType in servicesToRemove)
 				{
-					Debug.Log($"Scene {scene.name} unloaded but these services remain: {string.Join(", ", servicesFromUnloadedScene)}");
-					NotifyChange();
+					ServiceMap.Remove(serviceType);
+					ServiceSceneMap.Remove(serviceType);
+			
+					if (PromiseMap.TryGetValue(serviceType, out var taskList))
+					{
+						foreach (var tcs in taskList.ToList())
+						{
+							tcs.TrySetException(new ObjectDisposedException(
+								serviceType.Name, 
+								$"Service {serviceType.Name} from scene {sceneName} was unregistered"));
+						}
+						PromiseMap.Remove(serviceType);
+					}
+					
+					Debug.LogWarning($"Unregistered {serviceType.Name} from unloaded scene {sceneName}");
 				}
+		
+				NotifyChange();
 			}
 		}
 
 		#if UNITY_EDITOR
+		/// <summary>
+		/// Handles play mode state changes in the editor.
+		/// </summary>
 		protected virtual void HandlePlayModeStateChanged(UnityEditor.PlayModeStateChange state)
 		{
 			if (state != UnityEditor.PlayModeStateChange.ExitingPlayMode) return;
+			
 			DeInitialize();
 		}
 		#endif
-		
 	}
 }

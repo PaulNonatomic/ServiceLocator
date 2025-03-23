@@ -823,5 +823,156 @@ namespace Tests.EditMode
 			Assert.ThrowsAsync<TaskCanceledException>(async () => await task, 
 				"GetServicesAsync should throw TaskCanceledException when a linked token is canceled");
 		}
+
+		// Thread Safety and Concurrency
+		[Test]
+		public void MultipleServiceRegistrationsAtOnce_Succeeds()
+		{
+			Parallel.Invoke(
+				() => _serviceLocator.Register(new TestService()),
+				() => _serviceLocator.Register(new AnotherTestService()),
+				() => _serviceLocator.Register(new ThirdTestService())
+			);
+    
+			Assert.IsTrue(_serviceLocator.TryGetService(out TestService _));
+			Assert.IsTrue(_serviceLocator.TryGetService(out AnotherTestService _));
+			Assert.IsTrue(_serviceLocator.TryGetService(out ThirdTestService _));
+		}
+		
+		// Service Replacement
+		[Test]
+		public void Register_ReplacesExistingService()
+		{
+			var service1 = new TestService();
+			var service2 = new TestService();
+			_serviceLocator.Register(service1);
+			_serviceLocator.Register(service2);
+    
+			Assert.IsTrue(_serviceLocator.TryGetService(out TestService? retrievedService));
+			Assert.AreEqual(service2, retrievedService);
+			Assert.AreNotEqual(service1, retrievedService);
+		}
+		
+		// Error Handling
+		
+		[Test]
+		public void RejectService_MultipleTimes_DoesntThrow()
+		{
+			_serviceLocator.GetService<TestService>();
+    
+			_serviceLocator.RejectService<TestService>(new Exception("First"));
+    
+			// Should not throw when called again
+			Assert.DoesNotThrow(() => _serviceLocator.RejectService<TestService>(new Exception("Second")));
+		}
+		
+		// Memory Leaks
+		
+		[Test]
+		public void ServiceLocator_CleanupDisposesServices()
+		{
+			var disposableService = new DisposableTestService();
+			_serviceLocator.Register(disposableService);
+    
+			_serviceLocator.Cleanup();
+    
+			// Instead of checking garbage collection (which is unreliable in tests),
+			// just verify that the Dispose method was called
+			Assert.IsTrue(disposableService.Disposed, "Service should be disposed during cleanup");
+		}
+		
+		[Test]
+		public void ServiceLocator_RemovesAllServiceReferencesAfterCleanup()
+		{
+			var service = new TestService();
+			_serviceLocator.Register(service);
+    
+			_serviceLocator.Cleanup();
+    
+			// Test that ServiceMap is empty after cleanup
+			var services = _serviceLocator.GetAllServices();
+			Assert.AreEqual(0, services.Count, "ServiceMap should be empty after cleanup");
+    
+			// Test that we can't retrieve the service anymore
+			Assert.IsFalse(_serviceLocator.TryGetService(out TestService _), 
+				"Service should not be retrievable after cleanup");
+		}
+		
+		//  Scene Management
+		[UnityTest]
+		public IEnumerator SceneUnload_RemovesSceneSpecificServices()
+		{
+			// Mock scene unloading by directly calling the handler
+			var service = new TestService();
+			_serviceLocator.Register(service);
+    
+			// Get the scene name from the service map
+			string sceneName = _serviceLocator.GetSceneNameForService(typeof(TestService));
+    
+			// Simulate scene unloading
+			_serviceLocator.UnregisterServicesFromScene(sceneName);
+    
+			Assert.IsFalse(_serviceLocator.TryGetService(out TestService _), 
+				"Service should be unregistered when its scene is unloaded");
+    
+			yield return null;
+		}
+		
+		// Interface Registration and Retrieval
+		[Test]
+		public void Register_WithInterface_CanRetrieveByInterface()
+		{
+			var service = new InterfaceImplementingService();
+			_serviceLocator.Register<ITestServiceInterface>(service);
+    
+			Assert.IsTrue(_serviceLocator.TryGetService(out ITestServiceInterface retrievedService));
+			Assert.AreEqual(service, retrievedService);
+		}
+
+		private interface ITestServiceInterface { }
+		private class InterfaceImplementingService : ITestServiceInterface { }
+		
+		// Service Registration Type Mismatch
+		[Test]
+		public void Register_ByBaseType_ThenTryGet_ByDerivedType_ShouldFail()
+		{
+			var baseService = new BaseTestService();
+			_serviceLocator.Register<BaseTestService>(baseService);
+    
+			// Should not be able to get a DerivedTestService when a BaseTestService was registered
+			Assert.IsFalse(_serviceLocator.TryGetService(out DerivedTestService _));
+		}
+		
+		// Cancellation Edge Cases
+		[UnityTest]
+		public IEnumerator GetServiceAsync_WithCompletedCancellationToken_FailsImmediately()
+		{
+			var cts = new CancellationTokenSource();
+			cts.Cancel(); // Already canceled
+    
+			var task = _serviceLocator.GetServiceAsync<TestService>(cts.Token);
+    
+			yield return null;
+    
+			Assert.IsTrue(task.IsCanceled);
+			Assert.ThrowsAsync<TaskCanceledException>(async () => await task);
+		}
+		
+		// Service Lifetime Management
+		[Test]
+		public void DeInitialize_AndThenInitialize_RestoresServiceLocator()
+		{
+			_serviceLocator.ForceInitialize();
+			_serviceLocator.Register(new TestService());
+    
+			_serviceLocator.ForceDeInitialize();
+			// Services should be cleared after DeInitialize
+			Assert.IsFalse(_serviceLocator.TryGetService(out TestService _));
+    
+			// Re-initialize should restore functionality
+			_serviceLocator.ForceInitialize();
+			_serviceLocator.Register(new TestService());
+			Assert.IsTrue(_serviceLocator.TryGetService(out TestService _));
+		}
 	}
 }

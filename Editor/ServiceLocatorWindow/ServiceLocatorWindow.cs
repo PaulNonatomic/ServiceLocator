@@ -101,44 +101,42 @@ namespace Nonatomic.ServiceLocator.Editor
 		{
 			EditorApplication.playModeStateChanged += PlayModeStateChanged;
 			
-			// Subscribe to scene events
-			EditorSceneManager.sceneOpened += OnSceneOpened;
-			EditorSceneManager.sceneClosed += OnSceneClosed;
-			EditorSceneManager.sceneLoaded += OnSceneLoaded;
-			EditorSceneManager.sceneUnloaded += OnSceneUnloaded;
+			EditorSceneManager.sceneOpened += HandleSceneOpened;
+			EditorSceneManager.sceneClosed += HandleSceneClosed;
+			EditorSceneManager.sceneLoaded += HandleSceneLoaded;
+			EditorSceneManager.sceneUnloaded += HandleSceneUnloaded;
 		}
 
 		private void OnDisable()
 		{
 			EditorApplication.playModeStateChanged -= PlayModeStateChanged;
 			
-			// Unsubscribe from scene events
-			EditorSceneManager.sceneOpened -= OnSceneOpened;
-			EditorSceneManager.sceneClosed -= OnSceneClosed;
-			EditorSceneManager.sceneLoaded -= OnSceneLoaded;
-			EditorSceneManager.sceneUnloaded -= OnSceneUnloaded;
+			EditorSceneManager.sceneOpened -= HandleSceneOpened;
+			EditorSceneManager.sceneClosed -= HandleSceneClosed;
+			EditorSceneManager.sceneLoaded -= HandleSceneLoaded;
+			EditorSceneManager.sceneUnloaded -= HandleSceneUnloaded;
 		}
 		
 		// Scene event handlers
-		private void OnSceneOpened(Scene scene, OpenSceneMode mode)
+		private void HandleSceneOpened(Scene scene, OpenSceneMode mode)
 		{
 			Debug.Log($"Scene opened: {scene.name}, mode: {mode}");
 			ScheduleRefresh();
 		}
 		
-		private void OnSceneClosed(Scene scene)
+		private void HandleSceneClosed(Scene scene)
 		{
 			Debug.Log($"Scene closed: {scene.name}");
 			ScheduleRefresh();
 		}
 		
-		private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+		private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
 		{
 			Debug.Log($"Scene loaded: {scene.name}, mode: {mode}");
 			ScheduleRefresh();
 		}
 		
-		private void OnSceneUnloaded(Scene scene)
+		private void HandleSceneUnloaded(Scene scene)
 		{
 			Debug.Log($"Scene unloaded: {scene.name}");
 			ScheduleRefresh();
