@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.8.1] - Mar 23, 2025
+- Changed menu path to the Service Locator Window
+- Updated the README
+
 ## [0.8.0] - Mar 23, 2025
 - Added a Service Locator Window to track registered services
 - Added a more robust cleanup workflow to ensure that all services are cleaned up when exiting play mode

@@ -208,6 +208,31 @@ public class GameController : MonoBehaviour
     }
 }
 ```
+
+## Service Locator Window
+The ServiceLocator package includes a powerful debugging tool to help you monitor and manage your services during development.
+
+### Opening the Window
+To open the Service Locator Window:
+
+1. In the Unity Editor, navigate to Tools > Service Locator > Service Locator Window
+2. The window displays all ServiceLocator assets in your project and their registered services
+
+### Features
+* **Real-time monitoring:** Automatically updates to show all registered services
+* **Scene-based organization:** Services are grouped by the scenes they belong to
+* **Quick navigation:** Click on a service to select its GameObject in the hierarchy
+* **cript access:** Open the script file associated with a service directly from the window
+* **Unloaded scene tracking:** Identifies services from unloaded scenes
+* **Play mode awareness:** Updates when entering/exiting play mode
+
+### Usage Tips
+* **Quick debugging:** Quickly identify which services are registered and in which scenes
+* **Missing services:** If a service isn't registered when expected, check the window to confirm
+* **Scene management:** Track which services persist across scene loads
+* **Development:** Monitor service registration/unregistration during gameplay
+
+
 ## Advanced Use Cases
 Using Cancellation Token
 
