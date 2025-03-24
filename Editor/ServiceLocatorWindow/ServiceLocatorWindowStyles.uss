@@ -16,49 +16,53 @@
 .locator-header {
     font-size: 14px;
     -unity-font-style: bold;
-    margin-top: 10px;
-    margin-bottom: 5px;
-    padding: 7px;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 3px;
+    padding: 5px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+
+.locator-item {
+    margin-bottom: 2px;
+    padding: 2px;
 }
 
 .scene-header {
     font-size: 14px;
     -unity-font-style: bold;
-    margin-top: 10px;
-    margin-bottom: 5px;
-    padding-left: 5px;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 3px;
+    padding: 5px;
+    background-color: rgba(0, 0, 0, 0.2);    
+}
+
+.scene-content {
+    margin-left: 0px;
 }
 
 .service-label {
     font-size: 12px;
-    -unity-font-style: bold;
-    margin-top: 10px;
-    margin-bottom: 5px;
-    padding-left: 5px;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 3px;
 }
 
-.locator-item {
-    margin-left: 15px;
-    margin-bottom: 2px;
-    padding: 2px;
-    border-radius: 3px;
+.service-icon {
+    width: 12px;
+    height: 12px;
+    background-image: resource("Icons/circle");
+    margin-right: 10px;
+    margin-left:10px;
 }
 
 .service-item {
-    margin-left: 15px;
-    margin-bottom: 2px;
-    padding: 2px;
-    border-radius: 3px;
+    border-radius: 5px;
 }
 
 .service-item:hover {
-    background-color: rgba(0, 100, 255, 0.1);
+    border-radius: 5px;
+    background-color: rgba(0, 100, 0, 255);
+}
+
+.service-item-container {    
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
 }
 
 .service-type {
@@ -66,9 +70,8 @@
 }
 
 .no-services-message {
-    margin-top: 20px;
-    color: rgba(0, 0, 0, 0.5);
-    -unity-text-align: center;
+    margin-top: 5px;
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .refresh-button {
@@ -82,11 +85,11 @@
     margin-right: 5px;
     font-size: 10px;
     border-radius: 3px;
-    background-color: rgba(0, 180, 0, 0.1);
+    background-image: resource("Icons/center-square");
 }
 
 .ping-button:hover {
-    background-color: rgba(0, 180, 0, 0.2);
+    
 }
 
 .open-script-button {
@@ -95,11 +98,12 @@
     margin-right: 5px;
     font-size: 10px;
     border-radius: 3px;
-    background-color: rgba(0, 100, 255, 0.1);
+    background-image: resource("Icons/pencil");
+    background-color: rgba(0, 0, 0, 0);
 }
 
 .open-script-button:hover {
-    background-color: rgba(0, 100, 255, 0.2);
+    
 }
 
 .unloaded-scene {

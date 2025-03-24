@@ -13,10 +13,12 @@ namespace Nonatomic.ServiceLocator.Editor
 			AddToClassList("service-item");
 			
 			var container = new VisualElement();
-			container.style.flexDirection = FlexDirection.Row;
-			container.style.justifyContent = Justify.SpaceBetween;
-			container.style.alignItems = Align.Center;
+			container.AddToClassList("service-item-container");
 			Add(container);
+
+			var icon = new Image();
+			icon.AddToClassList("service-icon");
+			container.Add(icon);
 			
 			var serviceLabel = new Label(serviceType.Name);
 			serviceLabel.AddToClassList("service-label");
@@ -27,25 +29,19 @@ namespace Nonatomic.ServiceLocator.Editor
 			container.Add(buttonsContainer);
 			
 			// Add Open Script button
-			var openButton = new Button(() => OpenScriptInIDE(serviceType))
-			{
-				text = "Open Script"
-			};
+			var openButton = new Button(() => OpenScriptInIDE(serviceType));
 			openButton.AddToClassList("open-script-button");
 			buttonsContainer.Add(openButton);
 			
-			// Add Ping button only for MonoBehaviours
-			if (serviceInstance is MonoBehaviour monoBehaviour)
+			container.RegisterCallback<ClickEvent>((evt)=>
 			{
-				var pingButton = new Button(() => PingGameObject(monoBehaviour))
+				if (serviceInstance is MonoBehaviour monoBehaviour)
 				{
-					text = "Ping"
-				};
-				pingButton.AddToClassList("ping-button");
-				buttonsContainer.Add(pingButton);
-			}
+					PingGameObject(monoBehaviour);
+				}
+			});
 		}
-		
+
 		private void PingGameObject(MonoBehaviour monoBehaviour)
 		{
 			// Select the GameObject in the hierarchy

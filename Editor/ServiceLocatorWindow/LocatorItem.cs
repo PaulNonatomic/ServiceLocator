@@ -15,8 +15,6 @@ namespace Nonatomic.ServiceLocator.Editor
 
 		public LocatorItem(ServiceLocator locator)
 		{
-			Debug.Log($"new LocatorItem: {locator.name}");
-			
 			_locator = locator;
 			AddToClassList("locator-item");
 			
@@ -34,16 +32,11 @@ namespace Nonatomic.ServiceLocator.Editor
 			// Register for service changes
 			_locator.OnChange += HandleChange;
 			
-			// Add some debug to verify
-			Debug.Log($"Created LocatorItem for {_locator.name}");
-			
 			RefreshServices();
 		}
 
 		private void HandleChange()
 		{
-			Debug.Log($"Service change detected in {_locator.name}");
-			
 			UnityEditor.EditorApplication.delayCall += () =>
 			{
 				if (panel == null) return;
@@ -56,26 +49,21 @@ namespace Nonatomic.ServiceLocator.Editor
 			_locator.OnChange -= HandleChange;
 			UnregisterCallback<DetachFromPanelEvent>(OnDetachFromPanel);
 		}
-		
-		public void RefreshServices()
+
+		private void RefreshServices()
 		{
 			_servicesContainer.Clear();
 			var services = _locator.GetAllServices();
 			
-			Debug.Log($"Refreshing services for {_locator.name}, found {services.Count} services");
-			
 			if (services.Count == 0)
 			{
 				var emptyLabel = new Label("No services registered");
-				emptyLabel.AddToClassList("empty-message");
+				emptyLabel.AddToClassList("no-services-message");
 				_servicesContainer.Add(emptyLabel);
 				return;
 			}
 			
-			// Group services by scene
 			var servicesByScene = GroupServicesByScene(services);
-			
-			// Create a foldout for each scene
 			foreach (var sceneGroup in servicesByScene)
 			{
 				var sceneItem = new SceneItem(sceneGroup.SceneName, sceneGroup.Scene, sceneGroup.IsUnloaded);
@@ -100,7 +88,7 @@ namespace Nonatomic.ServiceLocator.Editor
 				var sceneInfo = ServiceUtils.GetSceneInfoForService(serviceInstance, serviceType, _locator);
 		
 				// Generate a key for the dictionary
-				string sceneKey = sceneInfo.IsUnloaded 
+				var sceneKey = sceneInfo.IsUnloaded 
 					? $"{ServiceUtils.UNLOADED_SCENE_PREFIX}{sceneInfo.SceneName}" 
 					: sceneInfo.SceneName;
 		
