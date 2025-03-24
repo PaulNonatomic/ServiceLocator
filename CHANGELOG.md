@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.8.6] - Mar 24, 2025
+- regenerated the meta files for the icons
+
 ## [0.8.5] - Mar 24, 2025
 ## [0.8.4] - Mar 24, 2025
 ## [0.8.3] - Mar 24, 2025
