@@ -25,7 +25,7 @@ namespace Nonatomic.ServiceLocator.Editor
 			container.Add(serviceLabel);
 			
 			var buttonsContainer = new VisualElement();
-			buttonsContainer.style.flexDirection = FlexDirection.Row;
+			buttonsContainer.AddToClassList("service-edit-btn-container");
 			container.Add(buttonsContainer);
 			
 			// Add Open Script button

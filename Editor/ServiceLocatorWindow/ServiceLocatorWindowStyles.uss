@@ -65,6 +65,12 @@
     align-items: center;
 }
 
+.service-edit-btn-container {
+    margin-left: auto;
+    position: absolute;
+    right: 0;
+}
+
 .service-type {
     -unity-font-style: bold;
 }
@@ -93,13 +99,12 @@
 }
 
 .open-script-button {
-    height: 20px;
+    height: 16px;
     padding: 2px 8px;
     margin-right: 5px;
-    font-size: 10px;
-    border-radius: 3px;
     background-image: resource("Icons/pencil");
-    background-color: rgba(0, 0, 0, 0);
+    background-color: rgba(0, 0, 0, 0);    
+    border-color: rgba(0, 0, 0, 0);
 }
 
 .open-script-button:hover {
