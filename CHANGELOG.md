@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.8.10] - Mar 24, 2025
+- Added NonSerialized attributes to all collections in the BaseServiceLocator to prevent Unity serializing any references
+
 ## [0.8.9] - Mar 24, 2025
 - Removed unrequired logs
 - 
