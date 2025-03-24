@@ -1,10 +1,10 @@
 ﻿using System;
+using Nonatomic.ServiceLocator.Utils;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Nonatomic.ServiceLocator.Editor.Utils;
 
-namespace Nonatomic.ServiceLocator.Editor
+namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 {
 	public class ServiceItem : VisualElement
 	{
@@ -48,18 +48,14 @@ namespace Nonatomic.ServiceLocator.Editor
 			});
 		}
 
-		private void PingGameObject(MonoBehaviour monoBehaviour)
+		private static void PingGameObject(MonoBehaviour monoBehaviour)
 		{
-			// Select the GameObject in the hierarchy
 			Selection.activeGameObject = monoBehaviour.gameObject;
-			
-			// Ping it in the hierarchy to highlight it
 			EditorGUIUtility.PingObject(monoBehaviour.gameObject);
 		}
 		
 		private void OpenScriptInIDE(Type type)
 		{
-			// Try to find and open the script
 			var script = ScriptFindingUtils.FindScriptForType(type);
 			
 			if (script != null)
