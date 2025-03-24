@@ -3,6 +3,7 @@
 ## [0.8.0] - Mar 23, 2025
 - Added a Service Locator Window to track registered services
 - Added a more robust cleanup workflow to ensure that all services are cleaned up when exiting play mode
+- Added additional tests
 
 ## [0.7.1] - Mar 05, 2025
 - Added support for combined cancellation tokens that ensures all tasks and promises are cancelled when the token is cancelled
