@@ -31,7 +31,13 @@
     font-size: 14px;
     -unity-font-style: bold;
     padding: 5px;
-    background-color: rgba(0, 0, 0, 0.2);    
+    background-color: rgba(0, 0, 0, 0.2);
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+.scene-item {
+    margin-bottom: 6px;
 }
 
 .scene-content {
@@ -52,6 +58,7 @@
 
 .service-item {
     border-radius: 5px;
+    padding:2px;
 }
 
 .service-item:hover {
@@ -63,6 +70,7 @@
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
+    border-radius: 5px;
 }
 
 .service-edit-btn-container {

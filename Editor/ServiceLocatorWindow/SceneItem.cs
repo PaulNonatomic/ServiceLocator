@@ -13,6 +13,8 @@ namespace Nonatomic.ServiceLocator.Editor
 
 		public SceneItem(string sceneName, Scene scene, bool isUnloaded = false)
 		{
+			AddToClassList("scene-item");
+			
 			_sceneName = sceneName;
 			_scene = scene;
 			_isUnloadedScene = isUnloaded;
