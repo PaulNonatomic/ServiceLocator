@@ -67,18 +67,11 @@ namespace Nonatomic.ServiceLocator.Editor
 		{
 			if (_scrollView == null) return;
 			
-			Debug.Log("Refreshing services...");
-	
-			// Clear existing content
 			_scrollView.Clear();
-	
-			// Force Unity to refresh asset references
 			AssetDatabase.Refresh();
 	
-			// Find all ServiceLocator instances
 			_serviceLocators = FindServiceLocatorAssets();
 	
-			// Create and add LocatorItems
 			foreach (var locator in _serviceLocators)
 			{
 				var locatorItem = new LocatorItem(locator);
@@ -88,7 +81,6 @@ namespace Nonatomic.ServiceLocator.Editor
 
 		private static List<ServiceLocator> FindServiceLocatorAssets()
 		{
-			Debug.Log("FindServiceLocatorAssets");
 			return AssetUtils.FindAssetsByType<ServiceLocator>();
 		}
 
@@ -120,32 +112,26 @@ namespace Nonatomic.ServiceLocator.Editor
 		// Scene event handlers
 		private void HandleSceneOpened(Scene scene, OpenSceneMode mode)
 		{
-			Debug.Log($"Scene opened: {scene.name}, mode: {mode}");
 			ScheduleRefresh();
 		}
 		
 		private void HandleSceneClosed(Scene scene)
 		{
-			Debug.Log($"Scene closed: {scene.name}");
 			ScheduleRefresh();
 		}
 		
 		private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
 		{
-			Debug.Log($"Scene loaded: {scene.name}, mode: {mode}");
 			ScheduleRefresh();
 		}
 		
 		private void HandleSceneUnloaded(Scene scene)
 		{
-			Debug.Log($"Scene unloaded: {scene.name}");
 			ScheduleRefresh();
 		}
 
 		private void PlayModeStateChanged(PlayModeStateChange state)
 		{
-			Debug.Log($"Play mode state changed: {state}");
-
 			if (state is not (PlayModeStateChange.EnteredEditMode or PlayModeStateChange.EnteredPlayMode)) return;
 			ScheduleRefresh();
 		}

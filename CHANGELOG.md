@@ -1,6 +1,20 @@
 # Change Log
 
-## [0.8.1] - Mar 23, 2025
+## [0.8.9] - Mar 24, 2025
+- Removed unrequired logs
+- 
+## [0.8.8] - Mar 24, 2025
+## [0.8.7] - Mar 24, 2025
+## [0.8.6] - Mar 24, 2025
+- regenerated the meta files for the icons
+
+## [0.8.5] - Mar 24, 2025
+## [0.8.4] - Mar 24, 2025
+## [0.8.3] - Mar 24, 2025
+## [0.8.2] - Mar 24, 2025
+- Tweaked icon paths to correct for installation via package manager
+
+## [0.8.1] - Mar 24, 2025
 - Changed menu path to the Service Locator Window
 - Updated the README
 
