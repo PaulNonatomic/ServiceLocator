@@ -1,12 +1,11 @@
-﻿using UnityEngine.SceneManagement;
+﻿using System.Linq;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
-namespace Nonatomic.ServiceLocator.Editor.Utils
+namespace Nonatomic.ServiceLocator.Utils
 {
-	using UnityEngine;
-	using UnityEditor;
-	using UnityEditor.SceneManagement;
-	using System.Linq;
-
 	public static class ServiceLocatorReferenceFixer
 	{
 		[MenuItem("Tools/Service Locator/Fix ServiceLocator References", false)]
@@ -15,7 +14,6 @@ namespace Nonatomic.ServiceLocator.Editor.Utils
 			// Delay the execution to ensure everything is loaded
 			EditorApplication.delayCall -= FixServiceLocatorReferences;
 
-			// Find the ServiceLocator asset
 			var serviceLocator = AssetDatabase.FindAssets("t:ServiceLocator")
 				.Select(guid => AssetDatabase.LoadAssetAtPath<ServiceLocator>(AssetDatabase.GUIDToAssetPath(guid)))
 				.FirstOrDefault();
@@ -26,10 +24,7 @@ namespace Nonatomic.ServiceLocator.Editor.Utils
 				return;
 			}
 
-			// Fix references in open scenes
 			FixReferencesInOpenScenes(serviceLocator);
-
-			// Optionally, fix references in all assets
 			FixReferencesInAllAssets(serviceLocator);
 		}
 		

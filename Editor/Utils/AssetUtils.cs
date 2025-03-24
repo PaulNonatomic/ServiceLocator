@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
-namespace Nonatomic.ServiceLocator.Editor.Utils
+namespace Nonatomic.ServiceLocator.Utils
 {
 	public static class AssetUtils
 	{

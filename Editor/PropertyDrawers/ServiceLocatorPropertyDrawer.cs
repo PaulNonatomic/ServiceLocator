@@ -1,9 +1,9 @@
-﻿using Nonatomic.ServiceLocator.Editor.Utils;
+﻿using Nonatomic.ServiceLocator.Utils;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 
-namespace Nonatomic.ServiceLocator.Editor.PropertyDrawers
+namespace Nonatomic.ServiceLocator.PropertyDrawers
 {
 	[CustomPropertyDrawer(typeof(ServiceLocator))]
 	public class ServiceLocatorPropertyDrawer : PropertyDrawer
@@ -34,11 +34,14 @@ namespace Nonatomic.ServiceLocator.Editor.PropertyDrawers
 			{
 				objectType = typeof(ServiceLocator),
 				allowSceneObjects = false,
-				bindingPath = nameof(property)
+				bindingPath = nameof(property),
+				style =
+				{
+					flexGrow = 1,
+					flexShrink = 1
+				}
 			};
-			
-			serviceLocatorField.style.flexGrow = 1;
-			serviceLocatorField.style.flexShrink = 1;
+
 			serviceLocatorField.BindProperty(property);
 			container.Add(serviceLocatorField);
 
@@ -47,17 +50,22 @@ namespace Nonatomic.ServiceLocator.Editor.PropertyDrawers
 		
 		private static VisualElement CreateRoot()
 		{
-			var root = new VisualElement();
-			root.name = "root";
-			root.style.flexDirection = FlexDirection.Row;
-			
+			var root = new VisualElement
+			{
+				name = "root",
+				style =
+				{
+					flexDirection = FlexDirection.Row
+				}
+			};
+
 			return root;
 		}
 		
 		private static bool GuardAgainstDestroyedSerializedObject(SerializedProperty property)
 		{
 			return property?.serializedObject == null || 
-			       property.serializedObject.targetObject == null;
+				   property.serializedObject.targetObject == null;
 		}
 	}
 }
