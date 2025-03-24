@@ -51,7 +51,7 @@
 .service-icon {
     width: 12px;
     height: 12px;
-    background-image: resource("Icons/circle");
+    background-image: resource("Packages/com.nonatomic.servicelocator/Icons/circle");
     margin-right: 10px;
     margin-left:10px;
 }
@@ -93,25 +93,12 @@
     align-self: center;
 }
 
-.ping-button {
-    height: 20px;
-    padding: 2px 8px;
-    margin-right: 5px;
-    font-size: 10px;
-    border-radius: 3px;
-    background-image: resource("Icons/center-square");
-}
-
-.ping-button:hover {
-    
-}
-
 .open-script-button {
     height: 16px;
     padding: 2px 8px;
     margin-right: 5px;
-    background-image: resource("Icons/pencil");
-    background-color: rgba(0, 0, 0, 0);    
+    background-image: resource("Packages/com.nonatomic.servicelocator/Icons/pencil");
+    background-color: rgba(0, 0, 0, 0);
     border-color: rgba(0, 0, 0, 0);
 }
 
