@@ -51,7 +51,6 @@
 .service-icon {
     width: 12px;
     height: 12px;
-    background-image: resource("Packages/com.nonatomic.servicelocator/Resources/Icons/circle");
     margin-right: 10px;
     margin-left:10px;
 }
@@ -95,11 +94,13 @@
 
 .open-script-button {
     height: 16px;
-    padding: 2px 8px;
-    margin-right: 5px;
-    background-image: resource("Packages/com.nonatomic.servicelocator/Resources/Icons/pencil");
+    margin: auto;
     background-color: rgba(0, 0, 0, 0);
     border-color: rgba(0, 0, 0, 0);
+}
+
+.open-script-icon {
+    height: 16px;
 }
 
 .open-script-button:hover {
