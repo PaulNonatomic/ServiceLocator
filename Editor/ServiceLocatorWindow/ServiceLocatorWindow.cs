@@ -17,7 +17,7 @@ namespace Nonatomic.ServiceLocator.Editor
 		private List<ServiceLocator> _serviceLocators;
 		private bool _refreshPending = false;
 
-		[MenuItem("Window/Nonatomic/Service Locator Window")]
+		[MenuItem("Tools/Service Locator/Service Locator Window")]
 		public static void ShowWindow()
 		{
 			var wnd = GetWindow<ServiceLocatorWindow>();
