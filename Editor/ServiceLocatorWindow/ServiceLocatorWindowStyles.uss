@@ -51,7 +51,7 @@
 .service-icon {
     width: 12px;
     height: 12px;
-    background-image: resource("Packages/com.nonatomic.servicelocator/Icons/circle");
+    background-image: resource("Packages/com.nonatomic.servicelocator/Resources/Icons/circle");
     margin-right: 10px;
     margin-left:10px;
 }
@@ -97,7 +97,7 @@
     height: 16px;
     padding: 2px 8px;
     margin-right: 5px;
-    background-image: resource("Packages/com.nonatomic.servicelocator/Icons/pencil");
+    background-image: resource("Packages/com.nonatomic.servicelocator/Resources/Icons/pencil");
     background-color: rgba(0, 0, 0, 0);
     border-color: rgba(0, 0, 0, 0);
 }
