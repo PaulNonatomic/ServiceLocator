@@ -232,6 +232,8 @@ To open the Service Locator Window:
 * **Scene management:** Track which services persist across scene loads
 * **Development:** Monitor service registration/unregistration during gameplay
 
+![Unity_Vrl49EheTg](https://github.com/user-attachments/assets/c77575c7-a25f-4bea-95c0-fd926a558cc5)
+
 
 ## Advanced Use Cases
 Using Cancellation Token
