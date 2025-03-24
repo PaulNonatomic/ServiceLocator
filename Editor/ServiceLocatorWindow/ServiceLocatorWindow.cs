@@ -1,14 +1,12 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using Nonatomic.ServiceLocator.Editor.Utils;
+using Nonatomic.ServiceLocator.Utils;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
-namespace Nonatomic.ServiceLocator.Editor
+namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 {
 	public class ServiceLocatorWindow : EditorWindow
 	{
@@ -27,10 +25,9 @@ namespace Nonatomic.ServiceLocator.Editor
 
 		public void CreateGUI()
 		{
-			// Get the root element
+			
 			_root = rootVisualElement;
 			
-			// Load and apply styles
 			var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(
 				"Packages/com.nonatomic.servicelocator/Editor/ServiceLocatorWindow/ServiceLocatorWindowStyles.uss");
 			_root.styleSheets.Add(styleSheet);
@@ -58,6 +55,7 @@ namespace Nonatomic.ServiceLocator.Editor
 			EditorApplication.delayCall += () => 
 			{
 				if (this == null) return;
+				
 				RefreshServices();
 				_refreshPending = false;
 			};
@@ -92,7 +90,6 @@ namespace Nonatomic.ServiceLocator.Editor
 		private void OnEnable()
 		{
 			EditorApplication.playModeStateChanged += PlayModeStateChanged;
-			
 			EditorSceneManager.sceneOpened += HandleSceneOpened;
 			EditorSceneManager.sceneClosed += HandleSceneClosed;
 			EditorSceneManager.sceneLoaded += HandleSceneLoaded;
@@ -102,7 +99,6 @@ namespace Nonatomic.ServiceLocator.Editor
 		private void OnDisable()
 		{
 			EditorApplication.playModeStateChanged -= PlayModeStateChanged;
-			
 			EditorSceneManager.sceneOpened -= HandleSceneOpened;
 			EditorSceneManager.sceneClosed -= HandleSceneClosed;
 			EditorSceneManager.sceneLoaded -= HandleSceneLoaded;

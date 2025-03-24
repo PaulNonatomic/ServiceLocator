@@ -2,7 +2,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace Nonatomic.ServiceLocator.Editor.Utils
+namespace Nonatomic.ServiceLocator.Utils
 {
 	public static class ScriptableObjectUtils
 	{

@@ -2,7 +2,7 @@
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
-namespace Nonatomic.ServiceLocator.Editor
+namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 {
 	public class SceneItem : VisualElement
 	{

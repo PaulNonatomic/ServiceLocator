@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 
-namespace Nonatomic.ServiceLocator.Editor
+namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 {
 	public class SceneGroupData
 	{

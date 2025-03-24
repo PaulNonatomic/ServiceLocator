@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
-using UnityEngine.SceneManagement;
+using Nonatomic.ServiceLocator.Utils;
 using UnityEngine.UIElements;
-using Nonatomic.ServiceLocator.Editor.Utils;
 
-namespace Nonatomic.ServiceLocator.Editor
+namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 {
 	public class LocatorItem : VisualElement
 	{
@@ -26,10 +24,7 @@ namespace Nonatomic.ServiceLocator.Editor
 			_servicesContainer.AddToClassList("services-container");
 			Add(_servicesContainer);
 			
-			// Register for DetachFromPanel event
-			RegisterCallback<DetachFromPanelEvent>(OnDetachFromPanel);
-			
-			// Register for service changes
+			RegisterCallback<DetachFromPanelEvent>(HandleDetachFromPanel);
 			_locator.OnChange += HandleChange;
 			
 			RefreshServices();
@@ -44,10 +39,10 @@ namespace Nonatomic.ServiceLocator.Editor
 			};
 		}
 
-		private void OnDetachFromPanel(DetachFromPanelEvent evt)
+		private void HandleDetachFromPanel(DetachFromPanelEvent evt)
 		{
 			_locator.OnChange -= HandleChange;
-			UnregisterCallback<DetachFromPanelEvent>(OnDetachFromPanel);
+			UnregisterCallback<DetachFromPanelEvent>(HandleDetachFromPanel);
 		}
 
 		private void RefreshServices()
@@ -89,7 +84,7 @@ namespace Nonatomic.ServiceLocator.Editor
 		
 				// Generate a key for the dictionary
 				var sceneKey = sceneInfo.IsUnloaded 
-					? $"{ServiceUtils.UNLOADED_SCENE_PREFIX}{sceneInfo.SceneName}" 
+					? $"{ServiceUtils.UnloadedScenePrefix}{sceneInfo.SceneName}" 
 					: sceneInfo.SceneName;
 		
 				// Add to appropriate scene group

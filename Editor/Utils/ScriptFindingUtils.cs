@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEditor;
 
-namespace Nonatomic.ServiceLocator.Editor.Utils
+namespace Nonatomic.ServiceLocator.Utils
 {
 	public static class ScriptFindingUtils
 	{
@@ -64,7 +64,7 @@ namespace Nonatomic.ServiceLocator.Editor.Utils
 		
 		private static MonoScript FindInterfaceScript(Type interfaceType)
 		{
-			// Try to find by checking script content - this is more resource-intensive
+			// Try to find by checking script content
 			var allScriptGuids = AssetDatabase.FindAssets("t:MonoScript");
 			var interfaceName = interfaceType.Name;
 			var fullName = interfaceType.FullName;
@@ -73,10 +73,9 @@ namespace Nonatomic.ServiceLocator.Editor.Utils
 			{
 				var path = AssetDatabase.GUIDToAssetPath(guid);
 				
-				// Skip obvious non-matches to improve performance
+				// Skip obvious non-matches
 				if (!path.EndsWith(".cs")) continue;
 				
-				// Read the script content
 				var content = System.IO.File.ReadAllText(path);
 				
 				// Look for interface declaration pattern
