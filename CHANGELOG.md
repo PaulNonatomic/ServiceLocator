@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.8.9] - Mar 24, 2025
+- Removed unrequired logs
+- 
 ## [0.8.8] - Mar 24, 2025
 ## [0.8.7] - Mar 24, 2025
 ## [0.8.6] - Mar 24, 2025
