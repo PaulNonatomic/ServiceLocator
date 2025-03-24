@@ -287,5 +287,26 @@ namespace Tests.PlayMode
 				Assert.AreEqual(customException, receivedException, "Exception should match the custom exception from RejectService.");
 			}
 		}
+		
+		// Promise Edge Cases
+		
+		[UnityTest]
+		public IEnumerator GetService_ResolvedAfterLongDelay_StillWorks()
+		{
+			var promise = _serviceLocator.GetService<TestService>();
+			var resolved = false;
+    
+			promise.Then(_ => resolved = true);
+    
+			// Wait for a significant time
+			yield return new WaitForSeconds(5.0f);
+    
+			// Register service after long delay
+			_serviceLocator.Register(new TestService());
+    
+			yield return new WaitUntil(() => resolved);
+    
+			Assert.IsTrue(resolved, "Promise should resolve even after long delay");
+		}
 	}
 }

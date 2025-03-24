@@ -28,6 +28,7 @@ To install ServiceLocator in your Unity project, add the package from the git UR
 - Multi-service retrieval in a single call
 - Cancellation support with `CancellationToken`, including `MonoBehaviour.destroyCancellationToken`
 - Robust error handling and service rejection mechanisms
+- Automatic scene tracking for services with a fallback cleanup method when scenes are unloaded
 
 ## Usage
 
@@ -370,6 +371,21 @@ Manually clean up services and promises:
 ```csharp
 _serviceLocator.Cleanup(); // Clears services and cancels pending promises
 ```
+
+When a service is unregistered (either manually or through scene unloading), any pending promises for that service will be automatically rejected with an ObjectDisposedException, allowing consumers to handle the unavailability gracefully.
+
+### Scene Management
+
+ServiceLocator automatically tracks which scene each MonoBehaviour-based service belongs to. When a scene is unloaded, any services from that scene are automatically unregistered to prevent memory leaks.
+If service clean is handled correctly this fallback should not be needed, but it is a good safety net and a warning will be logged for each service that is not cleaned up via the fallback.
+
+**Example: Automatic Scene Cleanup**
+```csharp
+// When TestScene is unloaded, all services registered from that scene
+// will be automatically unregistered, and any pending promises will be rejected
+Behavior: This prevents "zombie" services from persisting after their scene has been unloaded, which could lead to memory leaks or unexpected behavior.
+    
+
 
 ### Initialization and De-initialization
 ServiceLocator initializes/de-initializes automatically, but you can control it manually:
