@@ -18,11 +18,11 @@ namespace Nonatomic.ServiceLocator
 		public event Action? OnChange;
 		public bool IsInitialized { get; protected set; } = false;
 
-		protected readonly Dictionary<Type, object> ServiceMap = new();
-		protected readonly Dictionary<Type, List<TaskCompletionSource<object>>> PromiseMap = new();
-		protected readonly Dictionary<Type, string> ServiceSceneMap = new();
-		protected readonly List<(Type, Action<object>)> PendingCoroutines = new();
-		protected readonly object Lock = new();
+		[NonSerialized] protected readonly Dictionary<Type, object> ServiceMap = new();
+		[NonSerialized] protected readonly Dictionary<Type, List<TaskCompletionSource<object>>> PromiseMap = new();
+		[NonSerialized] protected readonly Dictionary<Type, string> ServiceSceneMap = new();
+		[NonSerialized] protected readonly List<(Type, Action<object>)> PendingCoroutines = new();
+		[NonSerialized] protected readonly object Lock = new();
 		
 		/// <summary>
 		/// Returns a dictionary containing all currently registered services.
