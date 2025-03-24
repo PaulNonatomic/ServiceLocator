@@ -18,7 +18,7 @@ namespace Nonatomic.ServiceLocator.Editor
 
 			var icon = new Image();
 			icon.AddToClassList("service-icon");
-			icon.image =  Resources.Load<Texture2D>("Icons/circle");
+			icon.image =  AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.nonatomic.servicelocator/Icons/circle.png");
 			container.Add(icon);
 			
 			var serviceLabel = new Label(serviceType.Name);
@@ -36,7 +36,7 @@ namespace Nonatomic.ServiceLocator.Editor
 			
 			var openIcon = new Image();
 			openIcon.AddToClassList("open-script-icon");
-			openIcon.image = Resources.Load<Texture2D>("Icons/pencil");
+			openIcon.image =AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.nonatomic.servicelocator/Icons/pencil.png");
 			openButton.Add(openIcon);
 			
 			container.RegisterCallback<ClickEvent>((evt)=>
