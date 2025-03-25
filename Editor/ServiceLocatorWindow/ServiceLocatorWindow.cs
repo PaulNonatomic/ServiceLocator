@@ -10,83 +10,11 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 {
 	public class ServiceLocatorWindow : EditorWindow
 	{
+		private bool _refreshPending;
 		private VisualElement _root;
-		private ScrollView _scrollView;
 		private List<ServiceLocator> _serviceLocators;
-		private bool _refreshPending = false;
+		private ServiceViewer _serviceViewer;
 
-		[MenuItem("Tools/Service Locator/Service Locator Window")]
-		public static void ShowWindow()
-		{
-			var wnd = GetWindow<ServiceLocatorWindow>();
-			wnd.titleContent = new GUIContent("Service Locator");
-			wnd.minSize = new Vector2(300, 300);
-		}
-
-		public void CreateGUI()
-		{
-			
-			_root = rootVisualElement;
-			
-			var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(
-				"Packages/com.nonatomic.servicelocator/Editor/ServiceLocatorWindow/ServiceLocatorWindowStyles.uss");
-			_root.styleSheets.Add(styleSheet);
-			_root.AddToClassList("service-locator-window");
-
-			var headerLabel = new Label("Service Locator Services");
-			headerLabel.AddToClassList("header");
-			_root.Add(headerLabel);
-
-			_scrollView = new ScrollView();
-			_root.Add(_scrollView);
-
-			var refreshButton = new Button(RefreshServices) { text = "Refresh Services" };
-			refreshButton.AddToClassList("refresh-button");
-			_root.Add(refreshButton);
-
-			RefreshServices();
-		}
-
-		private void ScheduleRefresh()
-		{
-			if (_refreshPending) return;
-			
-			_refreshPending = true;
-			EditorApplication.delayCall += () => 
-			{
-				if (this == null) return;
-				
-				RefreshServices();
-				_refreshPending = false;
-			};
-		}
-
-		private void RefreshServices()
-		{
-			if (_scrollView == null) return;
-			
-			_scrollView.Clear();
-			AssetDatabase.Refresh();
-	
-			_serviceLocators = FindServiceLocatorAssets();
-	
-			foreach (var locator in _serviceLocators)
-			{
-				var locatorItem = new LocatorItem(locator);
-				_scrollView.contentContainer.Add(locatorItem);
-			}
-		}
-
-		private static List<ServiceLocator> FindServiceLocatorAssets()
-		{
-			return AssetUtils.FindAssetsByType<ServiceLocator>();
-		}
-
-		private void OnFocus()
-		{
-			ScheduleRefresh();
-		}
-		
 		private void OnEnable()
 		{
 			EditorApplication.playModeStateChanged += PlayModeStateChanged;
@@ -104,23 +32,91 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			EditorSceneManager.sceneLoaded -= HandleSceneLoaded;
 			EditorSceneManager.sceneUnloaded -= HandleSceneUnloaded;
 		}
-		
+
+		public void CreateGUI()
+		{
+			_root = rootVisualElement;
+
+			var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(
+				"Packages/com.nonatomic.servicelocator/Editor/ServiceLocatorWindow/ServiceLocatorWindowStyles.uss");
+			_root.styleSheets.Add(styleSheet);
+			_root.AddToClassList("service-locator-window");
+
+			var headerLabel = new Label("Service Locator Services");
+			headerLabel.AddToClassList("header");
+			_root.Add(headerLabel);
+
+			_serviceViewer = new ServiceViewer();
+			_serviceViewer.OnRefreshRequested += RefreshServices;
+			_root.Add(_serviceViewer);
+
+			var refreshButton = new Button(RefreshServices) { text = "Refresh Services" };
+			refreshButton.AddToClassList("refresh-button");
+			_root.Add(refreshButton);
+
+			RefreshServices();
+		}
+
+		private void OnFocus()
+		{
+			ScheduleRefresh();
+		}
+
+		[MenuItem("Tools/Service Locator/Service Locator Window")]
+		public static void ShowWindow()
+		{
+			var wnd = GetWindow<ServiceLocatorWindow>();
+			wnd.titleContent = new GUIContent("Service Locator");
+			wnd.minSize = new Vector2(300, 300);
+		}
+
+		private void ScheduleRefresh()
+		{
+			if (_refreshPending) return;
+
+			_refreshPending = true;
+			EditorApplication.delayCall += () =>
+			{
+				if (this == null) return;
+
+				RefreshServices();
+				_refreshPending = false;
+			};
+		}
+
+		private void RefreshServices()
+		{
+			AssetDatabase.Refresh();
+
+			// Clear service item static collections and dependency analyzer cache
+			if (typeof(ServiceItem).GetMethod("ClearAllServiceItems") != null) ServiceItem.ClearAllServiceItems();
+			if (typeof(ServiceDependencyAnalyzer).GetMethod("ClearCache") != null) ServiceDependencyAnalyzer.ClearCache();
+
+			_serviceLocators = FindServiceLocatorAssets();
+			_serviceViewer.UpdateServices(_serviceLocators);
+		}
+
+		private static List<ServiceLocator> FindServiceLocatorAssets()
+		{
+			return AssetUtils.FindAssetsByType<ServiceLocator>();
+		}
+
 		// Scene event handlers
 		private void HandleSceneOpened(Scene scene, OpenSceneMode mode)
 		{
 			ScheduleRefresh();
 		}
-		
+
 		private void HandleSceneClosed(Scene scene)
 		{
 			ScheduleRefresh();
 		}
-		
+
 		private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
 		{
 			ScheduleRefresh();
 		}
-		
+
 		private void HandleSceneUnloaded(Scene scene)
 		{
 			ScheduleRefresh();

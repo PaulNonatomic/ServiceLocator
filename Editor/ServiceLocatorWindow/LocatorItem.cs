@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Nonatomic.ServiceLocator.Utils;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
@@ -35,6 +36,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			UnityEditor.EditorApplication.delayCall += () =>
 			{
 				if (panel == null) return;
+				Debug.Log("HandleChange");
 				RefreshServices();
 			};
 		}
@@ -46,7 +48,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 		}
 
 		private void RefreshServices()
-		{
+		{ 
 			_servicesContainer.Clear();
 			var services = _locator.GetAllServices();
 			

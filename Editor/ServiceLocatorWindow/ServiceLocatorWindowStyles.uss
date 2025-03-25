@@ -57,15 +57,17 @@
 
 .service-item {
     border-radius: 5px;
-    padding:2px;
+    padding: 2px;
+    transition: all 0.2s ease;
+    position: relative; /* For positioning indicators */
 }
 
 .service-item:hover {
     border-radius: 5px;
-    background-color: rgba(0, 100, 0, 255);
+    background-color: rgba(0, 100, 0, 0.7);
 }
 
-.service-item-container {    
+.service-item-container {
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
@@ -103,10 +105,6 @@
     height: 16px;
 }
 
-.open-script-button:hover {
-    
-}
-
 .unloaded-scene {
     color: #FF6B6B;
 }
@@ -118,4 +116,190 @@
 
 .unloaded-scene > .unity-toggle__input:checked {
     background-color: rgba(255, 107, 107, 0.2);
+}
+
+/* Dependency Highlighting Styles */
+
+/* The service being examined */
+.service-selected {
+    background-color: rgba(0, 100, 0, 0.5);
+    border-left: 3px solid rgb(0, 100, 0);
+}
+
+/* Dependencies - services this item uses */
+.dependency-highlight {
+    background-color: rgba(30, 144, 255, 0.2);
+    border-left: 3px solid rgb(30, 144, 255);
+}
+
+.dependency-highlight:hover {
+    background-color: rgba(30, 144, 255, 0.4);
+}
+
+/* Dependents - services that use this item */
+.dependent-highlight {
+    background-color: rgba(255, 165, 0, 0.2);
+    border-left: 3px solid rgb(255, 165, 0);
+}
+
+.dependent-highlight:hover {
+    background-color: rgba(255, 165, 0, 0.4);
+}
+
+/* Bidirectional dependencies - mutual dependency */
+.bidirectional-dependency {
+    background-color: rgba(147, 112, 219, 0.2);
+    border-left: 3px solid rgb(147, 112, 219);
+}
+
+.bidirectional-dependency:hover {
+    background-color: rgba(147, 112, 219, 0.4);
+}
+
+/* Dependency relationship indicator */
+.dependency-indicator {
+    position: absolute;
+    left: -15px;
+    top: 5px;
+    font-size: 13px;
+    font-weight: bold;
+    margin: 0;
+    padding: 0;
+    color: rgb(0, 100, 0);
+    width: 15px;
+    text-align: center;
+}
+
+.dependency-highlight > .dependency-indicator {
+    color: rgb(30, 144, 255); /* Blue for dependencies */
+}
+
+.dependent-highlight > .dependency-indicator {
+    color: rgb(255, 165, 0); /* Orange for dependents */
+}
+
+.bidirectional-dependency > .dependency-indicator {
+    color: rgb(147, 112, 219); /* Purple for bidirectional */
+}
+
+/* Filter Control Styles */
+.dependency-filter-control {
+    margin-bottom: 10px;
+    padding: 5px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+.filter-buttons-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-bottom: 5px;
+}
+
+.filter-button {
+    margin-right: 5px;
+    margin-bottom: 3px;
+    padding: 3px 8px;
+    font-size: 10px;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0.3);
+}
+
+.filter-button:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.filter-active {
+    background-color: rgba(0, 100, 0, 0.6);
+    color: white;
+    border-color: rgba(0, 100, 0, 0.8);
+}
+
+.clear-filter-button {
+    background-color: rgba(156, 39, 39, 0.6);
+    color: white;
+    border-color: rgba(156, 39, 39, 0.8);
+}
+
+.clear-filter-button:hover {
+    background-color: rgba(156, 39, 39, 0.8);
+}
+
+.filter-status-label {
+    font-size: 11px;
+    -unity-font-style: italic;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 3px;
+    padding-left: 3px;
+}
+
+.dependency-status {
+    color: rgb(30, 144, 255);
+}
+
+.dependent-status {
+    color: rgb(255, 165, 0);
+}
+
+.both-status {
+    color: rgb(147, 112, 219);
+}
+
+/* Dependency Legend Styles */
+.dependency-legend {
+    margin-bottom: 10px;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+}
+
+.legend-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.legend-instructions {
+    font-size: 11px;
+    -unity-font-style: italic;
+    margin-bottom: 8px;
+}
+
+.legend-item {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 16px;
+}
+
+.legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    margin-right: 6px;
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0.3);
+}
+
+.dependency-color {
+    background-color: rgb(30, 144, 255);
+}
+
+.dependent-color {
+    background-color: rgb(255, 165, 0);
+}
+
+.bidirectional-color {
+    background-color: rgb(147, 112, 219);
+}
+
+.legend-label {
+    font-size: 10px;
+}
+
+/* Service List Styles */
+.services-scroll-view {
+    flex-grow: 1;
+    margin-bottom: 10px;
 }
