@@ -1,4 +1,6 @@
-﻿#nullable enable
+﻿#if !DISABLE_SL_ASYNC
+
+#nullable enable
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -272,3 +274,4 @@ namespace Nonatomic.ServiceLocator
 		}
 	}
 }
+#endif

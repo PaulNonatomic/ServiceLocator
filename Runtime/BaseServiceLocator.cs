@@ -15,11 +15,21 @@ namespace Nonatomic.ServiceLocator
 	public abstract partial class BaseServiceLocator : ScriptableObject
 	{
 		[NonSerialized] protected readonly object Lock = new();
+
+		#if !DISABLE_SL_COROUTINES
 		[NonSerialized] protected readonly List<(Type, Action<object>)> PendingCoroutines = new();
+		#endif
+
+		#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
 		[NonSerialized] protected readonly Dictionary<Type, List<TaskCompletionSource<object>>> PromiseMap = new();
+		#endif
 
 		[NonSerialized] protected readonly Dictionary<Type, object> ServiceMap = new();
+
+		#if !DISABLE_SL_SCENE_TRACKING
 		[NonSerialized] protected readonly Dictionary<Type, string> ServiceSceneMap = new();
+		#endif
+
 		public bool IsInitialized { get; protected set; }
 
 		/// <summary>
@@ -61,6 +71,7 @@ namespace Nonatomic.ServiceLocator
 			}
 		}
 
+		#if !DISABLE_SL_SCENE_TRACKING
 		/// <summary>
 		///     Returns the scene name associated with a service type.
 		/// </summary>
@@ -73,7 +84,9 @@ namespace Nonatomic.ServiceLocator
 					: sceneName;
 			}
 		}
+		#endif
 
+		#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
 		/// <summary>
 		///     Cancels and removes all unfulfilled promises.
 		/// </summary>
@@ -119,6 +132,7 @@ namespace Nonatomic.ServiceLocator
 				PromiseMap.Remove(serviceType);
 			}
 		}
+		#endif
 
 		/// <summary>
 		///     Registers a service with the service locator.
@@ -137,6 +151,7 @@ namespace Nonatomic.ServiceLocator
 				var serviceType = typeof(T);
 				ServiceMap[serviceType] = service;
 
+				#if !DISABLE_SL_SCENE_TRACKING
 				// Track scene information for this service
 				var sceneName = "No Scene";
 				if (service is MonoBehaviour monoBehaviour)
@@ -145,7 +160,9 @@ namespace Nonatomic.ServiceLocator
 				}
 
 				ServiceSceneMap[serviceType] = sceneName;
+				#endif
 
+				#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
 				// Resolve any pending promises for this service
 				if (PromiseMap.TryGetValue(serviceType, out var taskCompletions))
 				{
@@ -156,7 +173,9 @@ namespace Nonatomic.ServiceLocator
 
 					PromiseMap.Remove(serviceType);
 				}
+				#endif
 
+				#if !DISABLE_SL_COROUTINES
 				// Notify any pending coroutines
 				var pendingCoroutines =
 					PendingCoroutines.FindAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
@@ -166,8 +185,13 @@ namespace Nonatomic.ServiceLocator
 				}
 
 				PendingCoroutines.RemoveAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
+				#endif
 
 				NotifyChange();
+
+				#if !DISABLE_SL_LOGGING
+				Debug.Log($"Service registered: {serviceType.Name}");
+				#endif
 			}
 		}
 
@@ -189,8 +213,12 @@ namespace Nonatomic.ServiceLocator
 			{
 				var serviceType = typeof(T);
 				ServiceMap.Remove(serviceType);
-				ServiceSceneMap.Remove(serviceType);
 
+				#if !DISABLE_SL_SCENE_TRACKING
+				ServiceSceneMap.Remove(serviceType);
+				#endif
+
+				#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
 				// Reject any pending promises for this service
 				if (PromiseMap.TryGetValue(serviceType, out var taskList))
 				{
@@ -203,8 +231,13 @@ namespace Nonatomic.ServiceLocator
 
 					PromiseMap.Remove(serviceType);
 				}
+				#endif
 
 				NotifyChange();
+
+				#if !DISABLE_SL_LOGGING
+				Debug.Log($"Service unregistered: {serviceType.Name}");
+				#endif
 			}
 		}
 
@@ -255,12 +288,25 @@ namespace Nonatomic.ServiceLocator
 					}
 				}
 
+				#if !DISABLE_SL_SCENE_TRACKING
 				ServiceSceneMap.Clear();
-				ServiceMap.Clear();
-				CleanupPromises();
+				#endif
 
+				ServiceMap.Clear();
+
+				#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
+				CleanupPromises();
+				#endif
+
+				#if !DISABLE_SL_COROUTINES
 				CancelPendingCoroutines();
+				#endif
+
 				NotifyChange();
+
+				#if !DISABLE_SL_LOGGING
+				Debug.Log("Service Locator cleaned up");
+				#endif
 			}
 		}
 
@@ -278,8 +324,15 @@ namespace Nonatomic.ServiceLocator
 			EditorApplication.playModeStateChanged += HandlePlayModeStateChanged;
 			#endif
 
+			#if !DISABLE_SL_SCENE_TRACKING
 			SceneManager.sceneUnloaded += HandleSceneUnloaded;
+			#endif
+
 			IsInitialized = true;
+
+			#if !DISABLE_SL_LOGGING
+			Debug.Log("Service Locator initialized");
+			#endif
 		}
 
 		/// <summary>
@@ -296,12 +349,20 @@ namespace Nonatomic.ServiceLocator
 			EditorApplication.playModeStateChanged -= HandlePlayModeStateChanged;
 			#endif
 
+			#if !DISABLE_SL_SCENE_TRACKING
 			SceneManager.sceneUnloaded -= HandleSceneUnloaded;
+			#endif
+
 			Cleanup();
 
 			IsInitialized = false;
+
+			#if !DISABLE_SL_LOGGING
+			Debug.Log("Service Locator de-initialized");
+			#endif
 		}
 
+		#if !DISABLE_SL_COROUTINES
 		/// <summary>
 		///     Cancels all pending coroutines.
 		/// </summary>
@@ -317,7 +378,9 @@ namespace Nonatomic.ServiceLocator
 				PendingCoroutines.Clear();
 			}
 		}
+		#endif
 
+		#if !DISABLE_SL_SCENE_TRACKING
 		/// <summary>
 		///     Handles when a scene is unloaded.
 		/// </summary>
@@ -347,13 +410,16 @@ namespace Nonatomic.ServiceLocator
 					return;
 				}
 
+				#if !DISABLE_SL_LOGGING
 				Debug.LogWarning($"Detected: {servicesToRemove.Count} services remain in unloaded scene: {sceneName}");
+				#endif
 
 				foreach (var serviceType in servicesToRemove)
 				{
 					ServiceMap.Remove(serviceType);
 					ServiceSceneMap.Remove(serviceType);
 
+					#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
 					if (PromiseMap.TryGetValue(serviceType, out var taskList))
 					{
 						foreach (var tcs in taskList.ToList())
@@ -365,13 +431,17 @@ namespace Nonatomic.ServiceLocator
 
 						PromiseMap.Remove(serviceType);
 					}
+					#endif
 
+					#if !DISABLE_SL_LOGGING
 					Debug.LogWarning($"Unregistered {serviceType.Name} from unloaded scene {sceneName}");
+					#endif
 				}
 
 				NotifyChange();
 			}
 		}
+		#endif
 
 		#if UNITY_EDITOR
 		/// <summary>

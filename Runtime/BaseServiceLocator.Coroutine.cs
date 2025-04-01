@@ -1,4 +1,6 @@
-﻿#nullable enable
+﻿#if !DISABLE_SL_COROUTINES
+
+#nullable enable
 using System;
 using System.Collections;
 using System.Linq;
@@ -55,3 +57,5 @@ namespace Nonatomic.ServiceLocator
 		}
 	}
 }
+
+#endif

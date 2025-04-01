@@ -23,6 +23,7 @@ namespace Nonatomic.ServiceLocator.Utils
 			}
 		}
 		
+		#if !DISABLE_SL_SCENE_TRACKING
 		public static SceneInfo GetSceneInfoForService(object service, Type serviceType, ServiceLocator locator)
 		{
 			var recordedSceneName = locator.GetSceneNameForService(serviceType);
@@ -74,5 +75,6 @@ namespace Nonatomic.ServiceLocator.Utils
 					recordedSceneName != "No Scene");
 			}
 		}
+		#endif
 	}
 }
