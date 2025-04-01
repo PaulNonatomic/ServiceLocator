@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.8.12] - Apr 01, 2025
+- For code clarity the BaseServiceLocator has been split into three partial classes to separate the 
+concerns of the service locator by retrieval method i.e async, coroutine and promise
+
 ## [0.8.11] - Mar 24, 2025
 - Code cleanup
 
