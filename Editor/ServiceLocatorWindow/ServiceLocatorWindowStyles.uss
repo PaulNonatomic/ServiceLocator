@@ -44,6 +44,11 @@
     margin-left: 0px;
 }
 
+.services-title-bar {
+    flex-direction: row;
+    justify-content: space-between;
+}
+
 .service-label {
     font-size: 12px;
 }
@@ -53,6 +58,12 @@
     height: 12px;
     margin-right: 10px;
     margin-left:10px;
+}
+
+.refresh-icon {    
+    width: 14px;
+    height: 14px;
+    margin: 4px;
 }
 
 .service-item {
@@ -88,8 +99,9 @@
 }
 
 .refresh-button {
-    margin-top: 10px;
+    margin-top: -16px;
     align-self: center;
+    margin-left: auto;
 }
 
 .open-script-button {
@@ -171,8 +183,13 @@
     font-size: 16px;
     -unity-font-style: bold;
     margin-bottom: 10px;
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(0, 0, 0, 0.2);
+    padding-bottom: 5px;
+}
+
+.services-header {
+    font-size: 16px;
+    -unity-font-style: bold;
+    margin-bottom: 10px;
     padding-bottom: 5px;
 }
 

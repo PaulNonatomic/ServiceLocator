@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
 
 namespace Nonatomic.ServiceLocator
 {
@@ -103,6 +104,34 @@ namespace Nonatomic.ServiceLocator
 				}
 
 				PromiseMap.Clear();
+			}
+		}
+
+		public virtual bool IsServiceValid<T>() where T : class
+		{
+			lock (Lock)
+			{
+				// First check if the service is actually registered
+				if (!ServiceMap.TryGetValue(typeof(T), out var service))
+				{
+					return false;
+				}
+
+				// Check if the service is null
+				if (service == null)
+				{
+					return false;
+				}
+
+				// Special handling for Unity objects that might be destroyed
+				if (service is Object unityObject)
+				{
+					// Unity's "==" operator is overridden to check if the object is destroyed
+					return unityObject != null;
+				}
+
+				// For regular C# objects, if we got this far, it's valid
+				return true;
 			}
 		}
 
