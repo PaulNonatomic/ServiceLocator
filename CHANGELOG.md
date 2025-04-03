@@ -2,6 +2,7 @@
 
 ## [0.9.1] - Apr 03, 2025
 - Fix for uss styling issue in toggle inputs
+- Added Theme based styling
 
 ## [0.9.0] - Apr 03, 2025
 - Added a settings tab to the Service Locator Window allowing users to disable features of the ServiceLocator. Disabled features are disabled by PreProcessor so the code is not included in builds.
