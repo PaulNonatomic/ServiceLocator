@@ -8,10 +8,10 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 	{
 		private readonly Foldout _sceneFoldout;
 		private readonly string _sceneName;
-		private readonly Scene _scene;
+		private readonly Scene? _scene;
 		private readonly bool _isUnloadedScene;
 
-		public SceneItem(string sceneName, Scene scene, bool isUnloaded = false)
+		public SceneItem(string sceneName, Scene? scene = null, bool isUnloaded = false)
 		{
 			AddToClassList("scene-item");
 			

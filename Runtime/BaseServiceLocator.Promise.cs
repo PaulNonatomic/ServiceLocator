@@ -1,4 +1,6 @@
-﻿#nullable enable
+﻿#if !DISABLE_SL_PROMISES
+
+#nullable enable
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -176,3 +178,4 @@ namespace Nonatomic.ServiceLocator
 		}
 	}
 }
+#endif
