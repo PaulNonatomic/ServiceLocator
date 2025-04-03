@@ -132,8 +132,12 @@
     background-color: rgba(255, 107, 107, 0.2);
 }
 
-.unity-toggle__input {    
+ServiceLocatorSettingsTab .unity-toggle__input {    
     flex-direction: row-reverse;
+}
+
+LocatorItem .unity-toggle__input {
+    flex-direction: row;
 }
 
 /* Tab View Styles */
