@@ -1,0 +1,26 @@
+.unity-button {
+    background-color: #777777;
+}
+
+.button-icon {
+    
+}
+
+.no-services-message {
+    color: #312F2F;
+    -unity-font-style: bold;
+}
+
+.settings-description {
+    color: #312F2F;
+    -unity-font-style: bold;
+}
+
+.tab-button {
+    background-color: #A5A5A5;
+}
+
+.tab-button-selected {
+    background-color: rgba(0, 100, 0, 0.3);
+    border-color: rgba(0, 0, 0, 0.3);
+}
