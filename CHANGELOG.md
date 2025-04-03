@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.9.2] - Apr 03, 2025
+- Expanded the IsServiceValid method to take a service reference which covers the case where a Service has been overwritten in the ServiceLocator leaving dangling references.
+
 ## [0.9.1] - Apr 03, 2025
 - Fix for uss styling issue in toggle inputs
 - Added Theme based styling
