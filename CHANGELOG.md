@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.9.0] - Apr 03, 2025
+- Added a settings tab to the Service Locator Window allowing users to disable features of the ServiceLocator. Disabled features are disabled by PreProcessor so the code is not included in builds.
+
 ## [0.8.13] - Apr 02, 2025
 - added the IsServiceValid method to help validate the state of services
   - More importantly this will help with detecting invalid MonoBehaviour based services
