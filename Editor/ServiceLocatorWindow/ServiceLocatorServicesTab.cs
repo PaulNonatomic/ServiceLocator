@@ -30,17 +30,18 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			Add(titleBar);
 
 			// Add header
-			var headerLabel = new Label("Service Locator Services");
+			var headerLabel = new Label("Services");
 			headerLabel.AddToClassList("services-header");
 			titleBar.Add(headerLabel);
 
 			// Add refresh button
 			var refreshButton = new Button(RefreshServices);
+			refreshButton.tooltip = "Refresh service list";
 			refreshButton.AddToClassList("refresh-button");
 			titleBar.Add(refreshButton);
 
 			var icon = new Image();
-			icon.AddToClassList("refresh-icon");
+			icon.AddToClassList("button-icon");
 			icon.image = Resources.Load<Texture2D>("Icons/refresh");
 			refreshButton.Add(icon);
 

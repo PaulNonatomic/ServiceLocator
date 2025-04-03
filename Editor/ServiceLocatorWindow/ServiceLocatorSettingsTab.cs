@@ -1,6 +1,7 @@
 ﻿using System;
 using Nonatomic.ServiceLocator.Settings;
 using UnityEditor;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
@@ -21,11 +22,43 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 		{
 			// Create the root container
 			AddToClassList("settings-tab");
+			
+			// Title bar
+			var titleBar = new VisualElement();
+			titleBar.AddToClassList("services-title-bar");
+			Add(titleBar);
 
 			// Add header
-			var headerLabel = new Label("Service Locator Configuration");
+			var headerLabel = new Label("Settings");
 			headerLabel.AddToClassList("settings-header");
-			Add(headerLabel);
+			titleBar.Add(headerLabel);
+			
+			// Add buttons container
+			var buttonsContainer = new VisualElement();
+			buttonsContainer.AddToClassList("settings-titlebar-buttons-container");
+			titleBar.Add(buttonsContainer);
+
+			// Add reset button
+			var resetButton = new Button(ResetToDefaults);
+			resetButton.AddToClassList("reset-button");
+			resetButton.tooltip = "Reset to Defaults";
+			buttonsContainer.Add(resetButton);
+			
+			var resetIcon = new Image();
+			resetIcon.AddToClassList("button-icon");
+			resetIcon.image = Resources.Load<Texture2D>("Icons/restore");
+			resetButton.Add(resetIcon);
+
+			// Add sync button
+			var syncButton = new Button(SyncFromProjectSettings);
+			syncButton.tooltip = "Sync from Project Settings";
+			syncButton.AddToClassList("sync-button");
+			buttonsContainer.Add(syncButton);
+			
+			var syncIcon = new Image();
+			syncIcon.AddToClassList("button-icon");
+			syncIcon.image = Resources.Load<Texture2D>("Icons/sync");
+			syncButton.Add(syncIcon);
 
 			// Add description
 			var descriptionLabel = new Label(
@@ -64,21 +97,6 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 				"Enables debug logging for service registration, retrieval, and other operations.",
 				ServiceLocatorSettings.EnableLogging,
 				value => ServiceLocatorSettings.EnableLogging = value);
-
-			// Add buttons container
-			var buttonsContainer = new VisualElement();
-			buttonsContainer.AddToClassList("buttons-container");
-			Add(buttonsContainer);
-
-			// Add reset button
-			var resetButton = new Button(ResetToDefaults) { text = "Reset to Defaults" };
-			resetButton.AddToClassList("reset-button");
-			buttonsContainer.Add(resetButton);
-
-			// Add sync button
-			var syncButton = new Button(SyncFromProjectSettings) { text = "Sync from Project Settings" };
-			syncButton.AddToClassList("sync-button");
-			buttonsContainer.Add(syncButton);
 		}
 
 		/// <summary>

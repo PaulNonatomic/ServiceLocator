@@ -60,9 +60,9 @@
     margin-left:10px;
 }
 
-.refresh-icon {    
-    width: 14px;
-    height: 14px;
+.button-icon {    
+    width: 18px;
+    height: 18px;
     margin: 4px;
 }
 
@@ -130,6 +130,10 @@
 
 .unloaded-scene > .unity-toggle__input:checked {
     background-color: rgba(255, 107, 107, 0.2);
+}
+
+.unity-toggle__input {    
+    flex-direction: row-reverse;
 }
 
 /* Tab View Styles */
@@ -218,26 +222,22 @@
     margin-left: 0;
 }
 
-.buttons-container {
+.settings-titlebar-buttons-container {
     flex-direction: row;
-    justify-content: flex-end;
-    margin-top: 15px;
+    margin-top: -16px;
+    align-self: center;
+    margin-left: auto;
+    min-width: 80px;
 }
 
 .reset-button {
-    margin-right: 10px;
-    background-color: rgba(255, 100, 100, 0.2);
-}
-
-.reset-button:hover {
-    background-color: rgba(255, 100, 100, 0.4);
+    margin-top: -8px;
+    align-self: center;
+    margin-left: auto;
 }
 
 .sync-button {
-    margin-right: 10px;
-    background-color: rgba(100, 100, 255, 0.2);
-}
-
-.sync-button:hover {
-    background-color: rgba(100, 100, 255, 0.4);
+    margin-top: -8px;
+    align-self: center;
+    margin-left: auto;
 }
