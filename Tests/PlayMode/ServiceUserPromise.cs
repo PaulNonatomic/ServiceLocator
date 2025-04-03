@@ -30,38 +30,43 @@ namespace Tests.PlayMode
 		}
 
 		#if !DISABLE_SL_PROMISES
-        private void Start()
-        {
-            // Get the service using promises
-            _serviceLocator.GetService<TestService>(destroyCancellationToken)
-                .Then(service => {
-                    _service = service;
-                    _thenCalled = true;
-                    Debug.Log($"Service retrieved via promise: {_service.Message}");
-                })
-                .Catch(ex => {
-                    _catchCalled = true;
-                    _caughtException = ex;
-                    Debug.LogWarning($"Promise failed: {ex.Message}");
-                });
-        }
-		#else
 		private void Start()
 		{
-			// Fallback when promises are disabled
-			if (_serviceLocator.TryGetService(out ServiceLocatorTestUtils.TestService service))
-			{
-				_service = service;
-				ThenCalled = true;
-				Debug.Log($"Service retrieved directly: {_service.Message}");
-			}
-			else
-			{
-				CatchCalled = true;
-				CaughtException = new InvalidOperationException("Service not found");
-				Debug.LogWarning("Service retrieval via TryGetService failed");
-			}
+			// Get the service using promises
+			_serviceLocator
+				.GetService<
+					ServiceLocatorTestUtils.TestService>(
+					destroyCancellationToken) // Fixed: added namespace to TestService
+				.Then(service =>
+				{
+					_service = service;
+					ThenCalled = true; // Fixed: using property instead of undefined _thenCalled
+					Debug.Log($"Service retrieved via promise: {_service.Message}");
+				})
+				.Catch(ex =>
+				{
+					CatchCalled = true; // Fixed: using property instead of undefined _catchCalled
+					CaughtException = ex; // Fixed: using property instead of undefined _caughtException
+					Debug.LogWarning($"Promise failed: {ex.Message}");
+				});
 		}
+		#else
+       private void Start()
+       {
+          // Fallback when promises are disabled
+          if (_serviceLocator.TryGetService(out ServiceLocatorTestUtils.TestService service))
+          {
+             _service = service;
+             ThenCalled = true;
+             Debug.Log($"Service retrieved directly: {_service.Message}");
+          }
+          else
+          {
+             CatchCalled = true;
+             CaughtException = new InvalidOperationException("Service not found");
+             Debug.LogWarning("Service retrieval via TryGetService failed");
+          }
+       }
 		#endif
 
 		// Method for testing purposes to retrieve the service
