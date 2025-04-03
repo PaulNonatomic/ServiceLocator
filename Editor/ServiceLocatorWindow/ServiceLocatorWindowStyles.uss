@@ -96,6 +96,7 @@
 .no-services-message {
     margin-top: 5px;
     color: rgba(255, 255, 255, 0.5);
+    -unity-font-style: bold;
 }
 
 .refresh-button {
@@ -132,8 +133,12 @@
     background-color: rgba(255, 107, 107, 0.2);
 }
 
-.unity-toggle__input {    
+ServiceLocatorSettingsTab .unity-toggle__input {    
     flex-direction: row-reverse;
+}
+
+LocatorItem .unity-toggle__input {
+    flex-direction: row;
 }
 
 /* Tab View Styles */
@@ -163,6 +168,7 @@
 .tab-button-selected {
     background-color: rgba(0, 100, 0, 0.3);
     border-color: rgba(0, 0, 0, 0.3);
+    font-weight: bold;
 }
 
 .tab-content-container {
@@ -201,6 +207,7 @@
     margin-bottom: 20px;
     white-space: normal;
     color: rgba(255, 255, 255, 0.8);
+    -unity-font-style: bold;
 }
 
 .toggles-container {

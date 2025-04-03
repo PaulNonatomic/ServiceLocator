@@ -36,9 +36,23 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 		{
 			_root = rootVisualElement;
 
-			var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(
+			// Load the base stylesheet
+			var baseStyleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(
 				"Packages/com.nonatomic.servicelocator/Editor/ServiceLocatorWindow/ServiceLocatorWindowStyles.uss");
-			_root.styleSheets.Add(styleSheet);
+			_root.styleSheets.Add(baseStyleSheet);
+
+			// Load theme-specific stylesheet
+			var themeSuffix = EditorGUIUtility.isProSkin ? "Dark" : "Light";
+			var themeStyleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(
+				$"Packages/com.nonatomic.servicelocator/Editor/ServiceLocatorWindow/ServiceLocatorWindowStyles{themeSuffix}.uss");
+    
+			// Add theme stylesheet if found
+			if (themeStyleSheet != null)
+			{
+				_root.styleSheets.Add(themeStyleSheet);
+			}
+			
+			
 			_root.AddToClassList("service-locator-window");
 
 			// Create tab view
