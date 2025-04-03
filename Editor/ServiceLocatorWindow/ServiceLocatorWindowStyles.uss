@@ -44,6 +44,11 @@
     margin-left: 0px;
 }
 
+.services-title-bar {
+    flex-direction: row;
+    justify-content: space-between;
+}
+
 .service-label {
     font-size: 12px;
 }
@@ -53,6 +58,12 @@
     height: 12px;
     margin-right: 10px;
     margin-left:10px;
+}
+
+.button-icon {    
+    width: 18px;
+    height: 18px;
+    margin: 4px;
 }
 
 .service-item {
@@ -65,7 +76,7 @@
     background-color: rgba(0, 100, 0, 255);
 }
 
-.service-item-container {    
+.service-item-container {
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
@@ -88,8 +99,9 @@
 }
 
 .refresh-button {
-    margin-top: 10px;
+    margin-top: -16px;
     align-self: center;
+    margin-left: auto;
 }
 
 .open-script-button {
@@ -104,7 +116,7 @@
 }
 
 .open-script-button:hover {
-    
+
 }
 
 .unloaded-scene {
@@ -118,4 +130,114 @@
 
 .unloaded-scene > .unity-toggle__input:checked {
     background-color: rgba(255, 107, 107, 0.2);
+}
+
+.unity-toggle__input {    
+    flex-direction: row-reverse;
+}
+
+/* Tab View Styles */
+.tab-view {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+.tab-buttons-container {
+    flex-direction: row;
+    border-bottom-width: 1px;
+    border-color: rgba(0, 0, 0, 0.2);
+    margin-bottom: 10px;
+}
+
+.tab-button {
+    padding: 5px 10px;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-width: 1px;
+    border-bottom-width: 0;
+    margin-right: 2px;
+    margin-bottom: 0;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.tab-button-selected {
+    background-color: rgba(0, 100, 0, 0.3);
+    border-color: rgba(0, 0, 0, 0.3);
+}
+
+.tab-content-container {
+    flex-grow: 1;
+    padding: 5px;
+}
+
+/* Services Tab Styles */
+.services-tab {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+/* Settings Tab Styles */
+.settings-tab {
+    flex-grow: 1;
+    flex-direction: column;
+    padding: 5px;
+}
+
+.settings-header {
+    font-size: 16px;
+    -unity-font-style: bold;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+}
+
+.services-header {
+    font-size: 16px;
+    -unity-font-style: bold;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+}
+
+.settings-description {
+    margin-bottom: 20px;
+    white-space: normal;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.toggles-container {
+    margin-bottom: 20px;
+}
+
+.toggle-row {
+    margin: 5px 0;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.toggle-row:hover {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.toggle-row Toggle {
+    margin-left: 0;
+}
+
+.settings-titlebar-buttons-container {
+    flex-direction: row;
+    margin-top: -16px;
+    align-self: center;
+    margin-left: auto;
+    min-width: 80px;
+}
+
+.reset-button {
+    margin-top: -8px;
+    align-self: center;
+    margin-left: auto;
+}
+
+.sync-button {
+    margin-top: -8px;
+    align-self: center;
+    margin-left: auto;
 }

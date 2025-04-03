@@ -44,7 +44,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			_locator.OnChange -= HandleChange;
 			UnregisterCallback<DetachFromPanelEvent>(HandleDetachFromPanel);
 		}
-
+		
 		private void RefreshServices()
 		{
 			_servicesContainer.Clear();
@@ -58,6 +58,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 				return;
 			}
 			
+			#if !DISABLE_SL_SCENE_TRACKING
 			var servicesByScene = GroupServicesByScene(services);
 			foreach (var sceneGroup in servicesByScene)
 			{
@@ -71,8 +72,21 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 					sceneItem.AddService(serviceItem);
 				}
 			}
+			#else
+			var sceneItem = new SceneItem("All scenes", null, false);
+			_servicesContainer.Add(sceneItem);
+				
+			// Add services for this scene
+			foreach (var (serviceType, serviceInstance) in services)
+			{
+				var serviceItem = new ServiceItem(serviceType, serviceInstance);
+				sceneItem.AddService(serviceItem);
+			}
+			#endif
 		}
 		
+		
+		#if !DISABLE_SL_SCENE_TRACKING
 		private List<SceneGroupData> GroupServicesByScene(IReadOnlyDictionary<Type, object> services)
 		{
 			var result = new Dictionary<string, SceneGroupData>();
@@ -109,5 +123,6 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 				.ThenBy(group => group.SceneName)
 				.ToList();
 		}
+		#endif
 	}
 }
