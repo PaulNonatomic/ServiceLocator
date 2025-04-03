@@ -106,7 +106,52 @@ namespace Nonatomic.ServiceLocator
 				PromiseMap.Clear();
 			}
 		}
+		
+		/// <summary>
+		/// Validates if a service reference is valid and matches the currently registered service.
+		/// </summary>
+		/// <typeparam name="T">The service interface type</typeparam>
+		/// <param name="serviceReference">The service reference to validate</param>
+		/// <returns>True if the reference is valid and matches the current registration</returns>
+		public virtual bool IsServiceValid<T>(T? serviceReference) where T : class
+		{
+			if (serviceReference == null)
+			{
+				return false;
+			}
+    
+			lock (Lock)
+			{
+				// Check if we have a service of this type registered
+				if (!ServiceMap.TryGetValue(typeof(T), out var registeredService))
+				{
+					return false;
+				}
+        
+				// Check if the registered service is valid
+				if (registeredService == null || 
+					(registeredService is UnityEngine.Object unityObj && unityObj == null))
+				{
+					return false;
+				}
+        
+				// Check if the reference matches the registered service
+				// This handles the case where the service was replaced
+				if (!ReferenceEquals(serviceReference, registeredService))
+				{
+					return false;
+				}
+        
+				// If we got here, the reference is valid and matches the current registration
+				return true;
+			}
+		}
 
+		/// <summary>
+		/// Validates if a service hewld by the ServiceLocator is valid.
+		/// </summary>
+		/// <typeparam name="T">The service interface type</typeparam>
+		/// <returns>True if the reference is valid</returns>
 		public virtual bool IsServiceValid<T>() where T : class
 		{
 			lock (Lock)
