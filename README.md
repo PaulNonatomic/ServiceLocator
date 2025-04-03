@@ -29,6 +29,8 @@ To install ServiceLocator in your Unity project, add the package from the git UR
 - Cancellation support with `CancellationToken`, including `MonoBehaviour.destroyCancellationToken`
 - Robust error handling and service rejection mechanisms
 - Automatic scene tracking for services with a fallback cleanup method when scenes are unloaded
+- Service validation for checking if MonoBehaviour services are valid or destroyed
+- Configurable feature toggles via the Service Locator Window settings tab
 
 ## Usage
 
@@ -218,13 +220,32 @@ To open the Service Locator Window:
 1. In the Unity Editor, navigate to Tools > Service Locator > Service Locator Window
 2. The window displays all ServiceLocator assets in your project and their registered services
 
-### Features
+### Window Tabs
+The Service Locator Window now includes two tabs:
+
+Services Tab: View and manage all registered services
+Settings Tab: Configure which ServiceLocator features are enabled
+
+### Services Tab Features
 * **Real-time monitoring:** Automatically updates to show all registered services
 * **Scene-based organization:** Services are grouped by the scenes they belong to
 * **Quick navigation:** Click on a service to select its GameObject in the hierarchy
-* **cript access:** Open the script file associated with a service directly from the window
+* **Script access:** Open the script file associated with a service directly from the window
 * **Unloaded scene tracking:** Identifies services from unloaded scenes
 * **Play mode awareness:** Updates when entering/exiting play mode
+
+### Settings Tab Features
+* **Feature toggles:** Enable/disable specific ServiceLocator features
+* **Preprocessor directives:** Automatically adds or removes the corresponding preprocessor directives
+* **Reset to defaults:** Option to reset all settings to their default values (all enabled)
+* **Sync from project:** Sync settings with the current project's scripting define symbols
+
+#### Available settings include:
+* Toggle Async Services
+* Toggle Promise Services
+* Toggle Coroutine Services
+* Toggle Scene Tracking
+* Toggle Logging
 
 ### Usage Tips
 * **Quick debugging:** Quickly identify which services are registered and in which scenes
@@ -277,6 +298,31 @@ public class PromiseUser : MonoBehaviour
 }
 ```
 **Behavior:** The promise rejects with a TaskCanceledException if the object is destroyed, ensuring safe cleanup.
+
+### Service Validation for MonoBehaviour Services
+The IsServiceValid<T>() method provides a convenient way to check if a service is registered and valid, particularly important for MonoBehaviour-based services that might be destroyed:
+```csharp
+public class ServiceValidator : MonoBehaviour
+{
+[SerializeField] private ServiceLocator _serviceLocator;
+
+    private void Update()
+    {
+        // Check if the service is still valid before using it
+        if (_serviceLocator.IsServiceValid<IMyService>())
+        {
+            _serviceLocator.TryGetService<IMyService>(out var service);
+            service.DoSomething();
+        }
+        else
+        {
+            // Service is not registered or has been destroyed
+            Debug.Log("Service is not valid, waiting for a new one to register...");
+        }
+    }
+}
+```
+**Behavior:** This method not only checks if the service is registered but also verifies that Unity MonoBehaviour-based services haven't been destroyed, providing safer service access.
 
 ### Linked Cancellation Tokens
 The ServiceLocator uses [CancellationTokenSource.CreateLinkedTokenSource](https://learn.microsoft.com/en-us/dotnet/api/system.threading.cancellationtokensource.createlinkedtokensource?view=net-9.0) internally to provide robust cancellation behavior for multi-service operations. This offers several benefits:
