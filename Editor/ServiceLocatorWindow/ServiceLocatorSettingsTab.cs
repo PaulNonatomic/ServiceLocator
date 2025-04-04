@@ -22,7 +22,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 		{
 			// Create the root container
 			AddToClassList("settings-tab");
-			
+
 			// Title bar
 			var titleBar = new VisualElement();
 			titleBar.AddToClassList("services-title-bar");
@@ -32,7 +32,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			var headerLabel = new Label("Settings");
 			headerLabel.AddToClassList("settings-header");
 			titleBar.Add(headerLabel);
-			
+
 			// Add buttons container
 			var buttonsContainer = new VisualElement();
 			buttonsContainer.AddToClassList("settings-titlebar-buttons-container");
@@ -43,7 +43,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			resetButton.AddToClassList("reset-button");
 			resetButton.tooltip = "Reset to Defaults";
 			buttonsContainer.Add(resetButton);
-			
+
 			var resetIcon = new Image();
 			resetIcon.AddToClassList("button-icon");
 			resetIcon.image = Resources.Load<Texture2D>("Icons/restore");
@@ -54,7 +54,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			syncButton.tooltip = "Sync from Project Settings";
 			syncButton.AddToClassList("sync-button");
 			buttonsContainer.Add(syncButton);
-			
+
 			var syncIcon = new Image();
 			syncIcon.AddToClassList("button-icon");
 			syncIcon.image = Resources.Load<Texture2D>("Icons/sync");

@@ -45,14 +45,14 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			var themeSuffix = EditorGUIUtility.isProSkin ? "Dark" : "Light";
 			var themeStyleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(
 				$"Packages/com.nonatomic.servicelocator/Editor/ServiceLocatorWindow/ServiceLocatorWindowStyles{themeSuffix}.uss");
-    
+
 			// Add theme stylesheet if found
 			if (themeStyleSheet != null)
 			{
 				_root.styleSheets.Add(themeStyleSheet);
 			}
-			
-			
+
+
 			_root.AddToClassList("service-locator-window");
 
 			// Create tab view
