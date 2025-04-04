@@ -56,8 +56,15 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			// Add search field
 			_searchField = new();
 			_searchField.AddToClassList("search-field");
+			
+			// Set placeholder text based on Unity version
+			#if UNITY_2022_3_OR_OLDER
+			_searchField.placeholder = "Search services...";
+			#elif UNITY_2023_1_OR_NEWER || UNITY_6_0_OR_NEWER
 			_searchField.textEdition.placeholder = "Search services...";
 			_searchField.textEdition.hidePlaceholderOnFocus = true;
+			#endif
+			
 			_searchField.RegisterValueChangedCallback(OnSearchChanged);
 			searchContainer.Add(_searchField);
 

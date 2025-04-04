@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.10.2] - Apr 04, 2025
+- Hot fix for setting placeholder text on search field in older versions of Unity
+
 ## [0.10.1] - Apr 04, 2025
 - Improved auto refresh of service list
 
