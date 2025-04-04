@@ -13,17 +13,19 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 	/// </summary>
 	public class ServiceLocatorServicesTab : VisualElement
 	{
+		private readonly Button _clearSearchButton;
+		private readonly List<LocatorItem> _locatorItems = new();
+		private readonly Label _noResultsLabel;
 		private readonly Action _refreshCallback;
-		private List<ServiceLocator> _serviceLocators;
+		private readonly TextField _searchField;
 		private readonly ScrollView _servicesScrollView;
+		private List<ServiceLocator> _serviceLocators;
 
 		public ServiceLocatorServicesTab(Action refreshCallback)
 		{
 			_refreshCallback = refreshCallback;
-
-			// Setup the root container
 			AddToClassList("services-tab");
-
+			
 			// Title bar
 			var titleBar = new VisualElement();
 			titleBar.AddToClassList("services-title-bar");
@@ -45,6 +47,33 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			icon.image = Resources.Load<Texture2D>("Icons/refresh");
 			refreshButton.Add(icon);
 
+			// Create the search container
+			var searchContainer = new VisualElement();
+			searchContainer.AddToClassList("search-container");
+			Add(searchContainer);
+
+			// Add search field
+			_searchField = new();
+			_searchField.AddToClassList("search-field");
+			_searchField.textEdition.placeholder = "Search services...";
+			_searchField.textEdition.hidePlaceholderOnFocus = true;
+			_searchField.RegisterValueChangedCallback(OnSearchChanged);
+			searchContainer.Add(_searchField);
+
+			// Add clear button
+			_clearSearchButton = new(ClearSearch);
+			_clearSearchButton.AddToClassList("clear-search-button");
+			_clearSearchButton.text = "×";
+			_clearSearchButton.tooltip = "Clear search";
+			_clearSearchButton.style.display = DisplayStyle.None; // Hidden initially
+			searchContainer.Add(_clearSearchButton);
+
+			// "No results" label (hidden initially)
+			_noResultsLabel = new("No services match your search");
+			_noResultsLabel.AddToClassList("no-results-message");
+			_noResultsLabel.style.display = DisplayStyle.None;
+			Add(_noResultsLabel);
+
 			// Create and add the scroll view
 			_servicesScrollView = new();
 			Add(_servicesScrollView);
@@ -64,6 +93,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			}
 
 			_servicesScrollView.Clear();
+			_locatorItems.Clear();
 			AssetDatabase.Refresh();
 
 			_serviceLocators = FindServiceLocatorAssets();
@@ -71,7 +101,14 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			foreach (var locator in _serviceLocators)
 			{
 				var locatorItem = new LocatorItem(locator);
+				_locatorItems.Add(locatorItem);
 				_servicesScrollView.contentContainer.Add(locatorItem);
+			}
+
+			// Apply any existing search filter
+			if (!string.IsNullOrWhiteSpace(_searchField.value))
+			{
+				ApplySearchFilter(_searchField.value);
 			}
 
 			// Call the provided refresh callback if it exists
@@ -84,6 +121,62 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 		private static List<ServiceLocator> FindServiceLocatorAssets()
 		{
 			return AssetUtils.FindAssetsByType<ServiceLocator>();
+		}
+
+		/// <summary>
+		///     Handles search field value changes.
+		/// </summary>
+		private void OnSearchChanged(ChangeEvent<string> evt)
+		{
+			var searchText = evt.newValue;
+
+			// Show/hide clear button based on whether there's search text
+			_clearSearchButton.style.display = string.IsNullOrWhiteSpace(searchText)
+				? DisplayStyle.None
+				: DisplayStyle.Flex;
+
+			ApplySearchFilter(searchText);
+		}
+
+		/// <summary>
+		///     Clears the search field.
+		/// </summary>
+		private void ClearSearch()
+		{
+			_searchField.value = string.Empty;
+			// ApplySearchFilter will be called automatically by the value changed callback
+		}
+
+		/// <summary>
+		///     Applies the search filter to all service items.
+		/// </summary>
+		private void ApplySearchFilter(string searchText)
+		{
+			if (string.IsNullOrWhiteSpace(searchText))
+			{
+				// Show all items when search is empty
+				foreach (var locatorItem in _locatorItems)
+				{
+					locatorItem.ShowAllItems();
+				}
+
+				_noResultsLabel.style.display = DisplayStyle.None;
+				return;
+			}
+
+			var totalMatchCount = 0;
+
+			// Apply filter to each locator item
+			foreach (var locatorItem in _locatorItems)
+			{
+				int matchCount = locatorItem.ApplySearchFilter(searchText);
+				totalMatchCount += matchCount;
+			}
+
+			// Show "no results" message if needed
+			_noResultsLabel.style.display = totalMatchCount > 0
+				? DisplayStyle.None
+				: DisplayStyle.Flex;
 		}
 	}
 }

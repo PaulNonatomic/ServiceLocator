@@ -16,9 +16,16 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
        private Texture2D _normalIcon;
        private Texture2D _hoverIcon;
        private Color _iconColor;
+       private readonly Label _serviceLabel;
+       
+       // The type name for search purposes
+       public string ServiceTypeName { get; }
 
        public ServiceItem(Type serviceType, object serviceInstance, SceneType sceneType = SceneType.Regular)
        {
+          // Store the service type name for searching
+          ServiceTypeName = serviceType.Name;
+          
           // Add the base service-item class
           AddToClassList("service-item");
           
@@ -56,9 +63,9 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
           
           container.Add(_icon);
           
-          var serviceLabel = new Label(serviceType.Name);
-          serviceLabel.AddToClassList("service-label");
-          container.Add(serviceLabel);
+          _serviceLabel = new Label(ServiceTypeName);
+          _serviceLabel.AddToClassList("service-label");
+          container.Add(_serviceLabel);
           
           var buttonsContainer = new VisualElement();
           buttonsContainer.AddToClassList("service-edit-btn-container");
@@ -170,6 +177,51 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
           // No scripts found
           EditorUtility.DisplayDialog("Script Not Found", 
              $"Could not find the script file for type {type.Name}.", "OK");
+       }
+       
+       /// <summary>
+       /// Checks if this service matches the search text using fuzzy matching.
+       /// </summary>
+       public bool MatchesSearch(string searchText)
+       {
+          if (string.IsNullOrWhiteSpace(searchText))
+          {
+             return true;
+          }
+          
+          return FuzzyMatch(ServiceTypeName, searchText);
+       }
+       
+       /// <summary>
+       /// Performs a fuzzy match between the service name and search text.
+       /// </summary>
+       private bool FuzzyMatch(string serviceName, string searchText)
+       {
+          // Convert both strings to lowercase for case-insensitive matching
+          string lowerServiceName = serviceName.ToLowerInvariant();
+          string lowerSearchText = searchText.ToLowerInvariant();
+          
+          // Simple contains check first (most common case)
+          if (lowerServiceName.Contains(lowerSearchText))
+          {
+             return true;
+          }
+          
+          // More sophisticated fuzzy matching - check if the characters appear in order
+          int serviceIndex = 0;
+          int searchIndex = 0;
+          
+          while (serviceIndex < lowerServiceName.Length && searchIndex < lowerSearchText.Length)
+          {
+             if (lowerServiceName[serviceIndex] == lowerSearchText[searchIndex])
+             {
+                searchIndex++;
+             }
+             serviceIndex++;
+          }
+          
+          // If we matched all characters in the search text
+          return searchIndex == lowerSearchText.Length;
        }
     }
 }
