@@ -1,6 +1,9 @@
 # Change Log
 
-## [0.9.3] - Apr 03, 2025
+## [0.10.0] - Apr 04, 2025
+- Added service search filtering
+- 
+## [0.9.3] - Apr 04, 2025
 - Added support for DontDestroyOnLoad
 - Added scene type colour coding
 - Added some additional styling
