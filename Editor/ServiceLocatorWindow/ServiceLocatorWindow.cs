@@ -52,18 +52,14 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 				_root.styleSheets.Add(themeStyleSheet);
 			}
 
-
 			_root.AddToClassList("service-locator-window");
-
-			// Create tab view
+			
 			_tabView = new();
 			_root.Add(_tabView);
 
-			// Create services tab
 			_servicesTab = new(ScheduleRefresh);
 			_tabView.AddTab("Services", _servicesTab);
 
-			// Create settings tab
 			_settingsTab = new();
 			_tabView.AddTab("Settings", _settingsTab);
 		}
