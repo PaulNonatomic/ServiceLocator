@@ -9,6 +9,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 		public string SceneName { get; set; } = "No Scene";
 		public Scene Scene { get; set; } = default;
 		public bool IsUnloaded { get; set; } = false;
+		public bool IsDontDestroyOnLoad { get; set; } = false;
 		public List<(Type Type, object Instance)> Services { get; } = new List<(Type, object)>();
 	}
 }
