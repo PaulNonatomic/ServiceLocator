@@ -49,31 +49,56 @@
     justify-content: space-between;
 }
 
+/* Updated: Lighter text for service labels */
 .service-label {
     font-size: 12px;
+    color: rgba(255, 255, 255, 0.8); /* 80% opacity white for lighter text */
 }
 
 .service-icon {
     width: 12px;
     height: 12px;
     margin-right: 10px;
-    margin-left:10px;
+    margin-left: 10px;
+    opacity: 0.8; /* Make the icon slightly lighter too */
 }
 
-.button-icon {    
+.button-icon {
     width: 18px;
     height: 18px;
     margin: 4px;
 }
 
+/* Base style for service items */
 .service-item {
     border-radius: 5px;
-    padding:2px;
+    padding: 2px;
+    margin-bottom: 2px;
+    -unity-font-style: italic;
+}
+
+/* Even rows - default background (no change needed) */
+.service-item-even {
+    background-color: rgba(0, 0, 0, 0.25);
+}
+
+/* Odd rows - slightly lighter background */
+.service-item-odd {
+    background-color: rgba(0, 0, 0, 0.15);
 }
 
 .service-item:hover {
     border-radius: 5px;
-    background-color: rgba(0, 100, 0, 255);
+    background-color: rgba(0, 100, 0, 0.3);
+}
+
+/* Make hover text fully opaque for better readability */
+.service-item:hover .service-label {
+    color: rgba(255, 255, 255, 1.0);
+}
+
+.service-item:hover .service-icon {
+    opacity: 1.0;
 }
 
 .service-item-container {
@@ -114,10 +139,11 @@
 
 .open-script-icon {
     height: 16px;
+    opacity: 0.8; /* Make icon slightly lighter by default */
 }
 
-.open-script-button:hover {
-
+.open-script-button:hover .open-script-icon {
+    opacity: 1.0; /* Full opacity on hover */
 }
 
 .unloaded-scene {
@@ -133,7 +159,7 @@
     background-color: rgba(255, 107, 107, 0.2);
 }
 
-ServiceLocatorSettingsTab .unity-toggle__input {    
+ServiceLocatorSettingsTab .unity-toggle__input {
     flex-direction: row-reverse;
 }
 
@@ -247,4 +273,60 @@ LocatorItem .unity-toggle__input {
     margin-top: -8px;
     align-self: center;
     margin-left: auto;
+}
+
+/* Style for DontDestroyOnLoad scenes - Green */
+.dont-destroy-scene {
+    color: #4CAF50; /* Material Design Green */
+}
+
+.dont-destroy-scene > .unity-toggle__text {
+    color: #4CAF50;
+    -unity-font-style: bold;
+}
+
+.dont-destroy-scene > .unity-toggle__input:checked {
+    background-color: rgba(76, 175, 80, 0.2); /* Light green background */
+}
+
+/* Style for unloaded scenes - Red (already exists, keeping for reference) */
+.unloaded-scene {
+    color: #FF6B6B;
+}
+
+.unloaded-scene > .unity-toggle__text {
+    color: #FF6B6B;
+    -unity-font-style: italic;
+}
+
+.unloaded-scene > .unity-toggle__input:checked {
+    background-color: rgba(255, 107, 107, 0.2);
+}
+
+/* NEW: Style for "No Scene" services - Blue */
+.no-scene {
+    color: #2196F3; /* Material Design Blue */
+}
+
+.no-scene > .unity-toggle__text {
+    color: #2196F3;
+    -unity-font-style: normal;
+}
+
+.no-scene > .unity-toggle__input:checked {
+    background-color: rgba(33, 150, 243, 0.2); /* Light blue background */
+}
+
+/* NEW: Style for regular scene services - Orange */
+.regular-scene {
+    color: #FF9800; /* Material Design Orange */
+}
+
+.regular-scene > .unity-toggle__text {
+    color: #FF9800;
+    -unity-font-style: normal;
+}
+
+.regular-scene > .unity-toggle__input:checked {
+    background-color: rgba(255, 152, 0, 0.2); /* Light orange background */
 }

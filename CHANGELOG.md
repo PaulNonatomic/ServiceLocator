@@ -1,5 +1,10 @@
 # Change Log
 
+## [0.9.3] - Apr 03, 2025
+- Added support for DontDestroyOnLoad
+- Added scene type colour coding
+- Added some additional styling
+
 ## [0.9.2] - Apr 03, 2025
 - Expanded the IsServiceValid method to take a service reference which covers the case where a Service has been overwritten in the ServiceLocator leaving dangling references.
 
