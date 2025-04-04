@@ -19,13 +19,14 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 		private readonly Action _refreshCallback;
 		private readonly TextField _searchField;
 		private readonly ScrollView _servicesScrollView;
-		private List<ServiceLocator> _serviceLocators;
+		private bool _refreshPending;
+		private List<ServiceLocator> _serviceLocators = new();
 
 		public ServiceLocatorServicesTab(Action refreshCallback)
 		{
 			_refreshCallback = refreshCallback;
 			AddToClassList("services-tab");
-			
+
 			// Title bar
 			var titleBar = new VisualElement();
 			titleBar.AddToClassList("services-title-bar");
@@ -37,7 +38,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			titleBar.Add(headerLabel);
 
 			// Add refresh button
-			var refreshButton = new Button(RefreshServices);
+			var refreshButton = new Button(RefreshServicesManually);
 			refreshButton.tooltip = "Refresh service list";
 			refreshButton.AddToClassList("refresh-button");
 			titleBar.Add(refreshButton);
@@ -78,8 +79,88 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			_servicesScrollView = new();
 			Add(_servicesScrollView);
 
+			// Register panel callbacks to handle attachment/detachment
+			RegisterCallback<AttachToPanelEvent>(HandleAttachToPanel);
+			RegisterCallback<DetachFromPanelEvent>(HandleDetachFromPanel);
+
 			// Initial refresh
 			RefreshServices();
+		}
+
+		private void HandleAttachToPanel(AttachToPanelEvent evt)
+		{
+			// Subscribe to change events for each service locator
+			foreach (var locator in _serviceLocators)
+			{
+				locator.OnChange += HandleServiceLocatorChange;
+			}
+
+			// Listen for editor scene changes
+			EditorApplication.hierarchyChanged += HandleHierarchyChanged;
+		}
+
+		private void HandleDetachFromPanel(DetachFromPanelEvent evt)
+		{
+			// Unsubscribe from all service locator events
+			foreach (var locator in _serviceLocators)
+			{
+				locator.OnChange -= HandleServiceLocatorChange;
+			}
+
+			// Stop listening for editor scene changes
+			EditorApplication.hierarchyChanged -= HandleHierarchyChanged;
+
+			// Clean up other callbacks
+			UnregisterCallback<AttachToPanelEvent>(HandleAttachToPanel);
+			UnregisterCallback<DetachFromPanelEvent>(HandleDetachFromPanel);
+		}
+
+		private void HandleHierarchyChanged()
+		{
+			// This catches scene changes (loading/unloading)
+			ScheduleRefresh();
+		}
+
+		private void HandleServiceLocatorChange()
+		{
+			// Schedule a refresh on the main thread
+			ScheduleRefresh();
+		}
+
+		/// <summary>
+		///     Schedules a refresh to happen on the next editor update.
+		/// </summary>
+		private void ScheduleRefresh()
+		{
+			if (_refreshPending)
+			{
+				return;
+			}
+
+			_refreshPending = true;
+			EditorApplication.delayCall += () =>
+			{
+				// Check if the tab is still attached to a panel
+				if (panel == null)
+				{
+					_refreshPending = false;
+					return;
+				}
+
+				RefreshServices();
+				_refreshPending = false;
+			};
+		}
+
+		/// <summary>
+		///     Manually triggered refresh from the UI button.
+		/// </summary>
+		private void RefreshServicesManually()
+		{
+			RefreshServices();
+
+			// Also call the window's refresh callback
+			_refreshCallback?.Invoke();
 		}
 
 		/// <summary>
@@ -92,12 +173,28 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 				return;
 			}
 
+			// Unsubscribe from old service locators first
+			foreach (var locator in _serviceLocators)
+			{
+				locator.OnChange -= HandleServiceLocatorChange;
+			}
+
 			_servicesScrollView.Clear();
 			_locatorItems.Clear();
+
+			// Force asset database refresh to find any new ServiceLocator assets
 			AssetDatabase.Refresh();
 
+			// Find all ServiceLocator assets
 			_serviceLocators = FindServiceLocatorAssets();
 
+			// Subscribe to all service locator change events
+			foreach (var locator in _serviceLocators)
+			{
+				locator.OnChange += HandleServiceLocatorChange;
+			}
+
+			// Create UI for each service locator
 			foreach (var locator in _serviceLocators)
 			{
 				var locatorItem = new LocatorItem(locator);
@@ -110,9 +207,6 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			{
 				ApplySearchFilter(_searchField.value);
 			}
-
-			// Call the provided refresh callback if it exists
-			_refreshCallback?.Invoke();
 		}
 
 		/// <summary>
@@ -169,7 +263,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			// Apply filter to each locator item
 			foreach (var locatorItem in _locatorItems)
 			{
-				int matchCount = locatorItem.ApplySearchFilter(searchText);
+				var matchCount = locatorItem.ApplySearchFilter(searchText);
 				totalMatchCount += matchCount;
 			}
 

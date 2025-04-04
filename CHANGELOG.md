@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.10.1] - Apr 04, 2025
+- Improved auto refresh of service list
+
 ## [0.10.0] - Apr 04, 2025
 - Added service search filtering
 
