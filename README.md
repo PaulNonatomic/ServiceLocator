@@ -239,6 +239,8 @@ Settings Tab: Configure which ServiceLocator features are enabled
 * **Preprocessor directives:** Automatically adds or removes the corresponding preprocessor directives
 * **Reset to defaults:** Option to reset all settings to their default values (all enabled)
 * **Sync from project:** Sync settings with the current project's scripting define symbols
+  
+![Unity_068925rSXh](https://github.com/user-attachments/assets/b62ae9d6-11a0-40c3-bd8b-b62bc30a64f0)
 
 #### Available settings include:
 * Toggle Async Services
@@ -247,14 +249,13 @@ Settings Tab: Configure which ServiceLocator features are enabled
 * Toggle Scene Tracking
 * Toggle Logging
 
+![Unity_NB3PwKaBtr](https://github.com/user-attachments/assets/f64473f4-65d6-43a4-8a59-4bcd56ebb9a5)
+
 ### Usage Tips
 * **Quick debugging:** Quickly identify which services are registered and in which scenes
 * **Missing services:** If a service isn't registered when expected, check the window to confirm
 * **Scene management:** Track which services persist across scene loads
 * **Development:** Monitor service registration/unregistration during gameplay
-
-![Unity_Vrl49EheTg](https://github.com/user-attachments/assets/c77575c7-a25f-4bea-95c0-fd926a558cc5)
-
 
 ## Advanced Use Cases
 Using Cancellation Token
