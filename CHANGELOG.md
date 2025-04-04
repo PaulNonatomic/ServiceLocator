@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.10.3] - Apr 04, 2025
+- Added some min height styling
+
 ## [0.10.2] - Apr 04, 2025
 - Hot fix for setting placeholder text on search field in older versions of Unity
 
