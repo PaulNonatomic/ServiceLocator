@@ -8,6 +8,10 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
+#if !DISABLE_SL_UNITASK && ENABLE_UNITASK
+using Cysharp.Threading.Tasks;
+#endif
+
 namespace Nonatomic.ServiceLocator
 {
 	/// <summary>
@@ -87,127 +91,6 @@ namespace Nonatomic.ServiceLocator
 		}
 		#endif
 
-		#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
-		/// <summary>
-		///     Cancels and removes all unfulfilled promises.
-		/// </summary>
-		public virtual void CleanupPromises()
-		{
-			lock (Lock)
-			{
-				foreach (var promiseList in PromiseMap.Values)
-				{
-					foreach (var promise in promiseList.ToList())
-					{
-						promise.TrySetCanceled();
-					}
-				}
-
-				PromiseMap.Clear();
-			}
-		}
-		
-		/// <summary>
-		/// Validates if a service reference is valid and matches the currently registered service.
-		/// </summary>
-		/// <typeparam name="T">The service interface type</typeparam>
-		/// <param name="serviceReference">The service reference to validate</param>
-		/// <returns>True if the reference is valid and matches the current registration</returns>
-		public virtual bool IsServiceValid<T>(T? serviceReference) where T : class
-		{
-			if (serviceReference == null)
-			{
-				return false;
-			}
-    
-			lock (Lock)
-			{
-				// Check if we have a service of this type registered
-				if (!ServiceMap.TryGetValue(typeof(T), out var registeredService))
-				{
-					return false;
-				}
-        
-				// Check if the registered service is valid
-				if (registeredService == null || 
-					(registeredService is UnityEngine.Object unityObj && unityObj == null))
-				{
-					return false;
-				}
-        
-				// Check if the reference matches the registered service
-				// This handles the case where the service was replaced
-				if (!ReferenceEquals(serviceReference, registeredService))
-				{
-					return false;
-				}
-        
-				// If we got here, the reference is valid and matches the current registration
-				return true;
-			}
-		}
-
-		/// <summary>
-		/// Validates if a service hewld by the ServiceLocator is valid.
-		/// </summary>
-		/// <typeparam name="T">The service interface type</typeparam>
-		/// <returns>True if the reference is valid</returns>
-		public virtual bool IsServiceValid<T>() where T : class
-		{
-			lock (Lock)
-			{
-				// First check if the service is actually registered
-				if (!ServiceMap.TryGetValue(typeof(T), out var service))
-				{
-					return false;
-				}
-
-				// Check if the service is null
-				if (service == null)
-				{
-					return false;
-				}
-
-				// Special handling for Unity objects that might be destroyed
-				if (service is Object unityObject)
-				{
-					// Unity's "==" operator is overridden to check if the object is destroyed
-					return unityObject != null;
-				}
-
-				// For regular C# objects, if we got this far, it's valid
-				return true;
-			}
-		}
-
-		/// <summary>
-		///     Rejects all pending promises for a specific service type with an exception.
-		/// </summary>
-		public virtual void RejectService<T>(Exception exception) where T : class
-		{
-			if (exception == null)
-			{
-				throw new ArgumentNullException(nameof(exception));
-			}
-
-			lock (Lock)
-			{
-				var serviceType = typeof(T);
-				if (!PromiseMap.TryGetValue(serviceType, out var taskList))
-				{
-					return;
-				}
-
-				foreach (var tcs in taskList.ToList())
-				{
-					tcs.TrySetException(exception);
-				}
-
-				PromiseMap.Remove(serviceType);
-			}
-		}
-		#endif
-
 		/// <summary>
 		///     Registers a service with the service locator.
 		/// </summary>
@@ -247,6 +130,19 @@ namespace Nonatomic.ServiceLocator
 
 					PromiseMap.Remove(serviceType);
 				}
+				#endif
+
+				#if !DISABLE_SL_UNITASK && ENABLE_UNITASK
+                // Resolve any pending UniTask promises for this service
+                if (UniTaskPromiseMap.TryGetValue(serviceType, out var uniTaskCompletions))
+                {
+                    foreach (var utcs in uniTaskCompletions.ToList())
+                    {
+                        utcs.TrySetResult(service);
+                    }
+
+                    UniTaskPromiseMap.Remove(serviceType);
+                }
 				#endif
 
 				#if !DISABLE_SL_COROUTINES
@@ -305,6 +201,21 @@ namespace Nonatomic.ServiceLocator
 
 					PromiseMap.Remove(serviceType);
 				}
+				#endif
+
+				#if !DISABLE_SL_UNITASK && ENABLE_UNITASK
+                // Reject any pending UniTask promises for this service
+                if (UniTaskPromiseMap.TryGetValue(serviceType, out var uniTaskList))
+                {
+                    foreach (var utcs in uniTaskList.ToList())
+                    {
+                        utcs.TrySetException(new ObjectDisposedException(
+                            serviceType.Name,
+                            $"Service {serviceType.Name} was unregistered while waiting for it to be available"));
+                    }
+
+                    UniTaskPromiseMap.Remove(serviceType);
+                }
 				#endif
 
 				NotifyChange();
@@ -370,6 +281,10 @@ namespace Nonatomic.ServiceLocator
 
 				#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
 				CleanupPromises();
+				#endif
+
+				#if !DISABLE_SL_UNITASK && ENABLE_UNITASK
+                CleanupUniTaskPromises();
 				#endif
 
 				#if !DISABLE_SL_COROUTINES
@@ -454,6 +369,142 @@ namespace Nonatomic.ServiceLocator
 		}
 		#endif
 
+		#if UNITY_EDITOR
+		/// <summary>
+		///     Handles play mode state changes in the editor.
+		/// </summary>
+		protected virtual void HandlePlayModeStateChanged(PlayModeStateChange state)
+		{
+			if (state != PlayModeStateChange.ExitingPlayMode)
+			{
+				return;
+			}
+
+			DeInitialize();
+		}
+		#endif
+
+		#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
+		/// <summary>
+		///     Cancels and removes all unfulfilled promises.
+		/// </summary>
+		public virtual void CleanupPromises()
+		{
+			lock (Lock)
+			{
+				foreach (var promiseList in PromiseMap.Values)
+				{
+					foreach (var promise in promiseList.ToList())
+					{
+						promise.TrySetCanceled();
+					}
+				}
+
+				PromiseMap.Clear();
+			}
+		}
+
+		/// <summary>
+		///     Validates if a service reference is valid and matches the currently registered service.
+		/// </summary>
+		/// <typeparam name="T">The service interface type</typeparam>
+		/// <param name="serviceReference">The service reference to validate</param>
+		/// <returns>True if the reference is valid and matches the current registration</returns>
+		public virtual bool IsServiceValid<T>(T? serviceReference) where T : class
+		{
+			if (serviceReference == null)
+			{
+				return false;
+			}
+
+			lock (Lock)
+			{
+				// Check if we have a service of this type registered
+				if (!ServiceMap.TryGetValue(typeof(T), out var registeredService))
+				{
+					return false;
+				}
+
+				// Check if the registered service is valid
+				if (registeredService == null ||
+					(registeredService is Object unityObj && unityObj == null))
+				{
+					return false;
+				}
+
+				// Check if the reference matches the registered service
+				// This handles the case where the service was replaced
+				if (!ReferenceEquals(serviceReference, registeredService))
+				{
+					return false;
+				}
+
+				// If we got here, the reference is valid and matches the current registration
+				return true;
+			}
+		}
+
+		/// <summary>
+		///     Validates if a service held by the ServiceLocator is valid.
+		/// </summary>
+		/// <typeparam name="T">The service interface type</typeparam>
+		/// <returns>True if the reference is valid</returns>
+		public virtual bool IsServiceValid<T>() where T : class
+		{
+			lock (Lock)
+			{
+				// First check if the service is actually registered
+				if (!ServiceMap.TryGetValue(typeof(T), out var service))
+				{
+					return false;
+				}
+
+				// Check if the service is null
+				if (service == null)
+				{
+					return false;
+				}
+
+				// Special handling for Unity objects that might be destroyed
+				if (service is Object unityObject)
+				{
+					// Unity's "==" operator is overridden to check if the object is destroyed
+					return unityObject != null;
+				}
+
+				// For regular C# objects, if we got this far, it's valid
+				return true;
+			}
+		}
+
+		/// <summary>
+		///     Rejects all pending promises for a specific service type with an exception.
+		/// </summary>
+		public virtual void RejectService<T>(Exception exception) where T : class
+		{
+			if (exception == null)
+			{
+				throw new ArgumentNullException(nameof(exception));
+			}
+
+			lock (Lock)
+			{
+				var serviceType = typeof(T);
+				if (!PromiseMap.TryGetValue(serviceType, out var taskList))
+				{
+					return;
+				}
+
+				foreach (var tcs in taskList.ToList())
+				{
+					tcs.TrySetException(exception);
+				}
+
+				PromiseMap.Remove(serviceType);
+			}
+		}
+		#endif
+
 		#if !DISABLE_SL_SCENE_TRACKING
 		/// <summary>
 		///     Handles when a scene is unloaded.
@@ -507,6 +558,20 @@ namespace Nonatomic.ServiceLocator
 					}
 					#endif
 
+					#if !DISABLE_SL_UNITASK && ENABLE_UNITASK
+                    if (UniTaskPromiseMap.TryGetValue(serviceType, out var uniTaskList))
+                    {
+                        foreach (var utcs in uniTaskList.ToList())
+                        {
+                            utcs.TrySetException(new ObjectDisposedException(
+                                serviceType.Name,
+                                $"Service {serviceType.Name} from scene {sceneName} was unregistered"));
+                        }
+
+                        UniTaskPromiseMap.Remove(serviceType);
+                    }
+					#endif
+
 					#if !DISABLE_SL_LOGGING
 					Debug.LogWarning($"Unregistered {serviceType.Name} from unloaded scene {sceneName}");
 					#endif
@@ -514,21 +579,6 @@ namespace Nonatomic.ServiceLocator
 
 				NotifyChange();
 			}
-		}
-		#endif
-
-		#if UNITY_EDITOR
-		/// <summary>
-		///     Handles play mode state changes in the editor.
-		/// </summary>
-		protected virtual void HandlePlayModeStateChanged(PlayModeStateChange state)
-		{
-			if (state != PlayModeStateChange.ExitingPlayMode)
-			{
-				return;
-			}
-
-			DeInitialize();
 		}
 		#endif
 	}

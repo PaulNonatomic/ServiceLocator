@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor;
+using UnityEngine;
 
 namespace Nonatomic.ServiceLocator.Settings
 {
@@ -16,6 +18,8 @@ namespace Nonatomic.ServiceLocator.Settings
 		public const string DisableCoroutines = "DISABLE_SL_COROUTINES";
 		public const string DisableSceneTracking = "DISABLE_SL_SCENE_TRACKING";
 		public const string DisableLogging = "DISABLE_SL_LOGGING";
+		public const string DisableUniTask = "DISABLE_SL_UNITASK";
+		public const string EnableUniTask = "ENABLE_UNITASK";
 
 		// EditorPrefs keys
 		private const string PrefKeyPrefix = "Nonatomic.ServiceLocator.";
@@ -24,9 +28,11 @@ namespace Nonatomic.ServiceLocator.Settings
 		private const string EnableCoroutinesKey = PrefKeyPrefix + "EnableCoroutines";
 		private const string EnableSceneTrackingKey = PrefKeyPrefix + "EnableSceneTracking";
 		private const string EnableLoggingKey = PrefKeyPrefix + "EnableLogging";
+		private const string EnableUniTaskKey = PrefKeyPrefix + "EnableUniTask";
 
-		// Default values - all features enabled by default
+		// Default values - all features enabled by default except UniTask
 		private const bool DefaultEnabled = true;
+		private const bool DefaultUniTaskEnabled = false;
 
 		// Properties for each feature
 		public static bool EnableAsyncServices
@@ -104,6 +110,30 @@ namespace Nonatomic.ServiceLocator.Settings
 			}
 		}
 
+		public static bool EnableUniTaskServices
+		{
+			get => EditorPrefs.GetBool(EnableUniTaskKey, DefaultUniTaskEnabled);
+			set
+			{
+				if (EditorPrefs.GetBool(EnableUniTaskKey, DefaultUniTaskEnabled) == value)
+				{
+					return;
+				}
+
+				EditorPrefs.SetBool(EnableUniTaskKey, value);
+				UpdateScriptingDefineSymbols();
+			}
+		}
+
+		/// <summary>
+		///     Checks if UniTask package exists in the project
+		/// </summary>
+		public static bool CheckUniTaskExists()
+		{
+			return Directory.Exists("Packages/com.cysharp.unitask") ||
+				   Directory.Exists("Assets/Plugins/UniTask");
+		}
+
 		/// <summary>
 		///     Updates the scripting define symbols based on the current settings.
 		/// </summary>
@@ -120,7 +150,38 @@ namespace Nonatomic.ServiceLocator.Settings
 			UpdateDefine(definesList, DisableCoroutines, !EnableCoroutineServices);
 			UpdateDefine(definesList, DisableSceneTracking, !EnableSceneTracking);
 			UpdateDefine(definesList, DisableLogging, !EnableLogging);
+			UpdateDefine(definesList, DisableUniTask, !EnableUniTaskServices);
 
+			// Ensure ENABLE_UNITASK is present if UniTask is enabled
+			if (EnableUniTaskServices)
+			{
+				var unitaskExists = CheckUniTaskExists();
+
+				if (unitaskExists)
+				{
+					// Make sure ENABLE_UNITASK is defined
+					if (!definesList.Contains(EnableUniTask))
+					{
+						definesList.Add(EnableUniTask);
+					}
+				}
+				else
+				{
+					// UniTask package not found, show warning and disable the setting
+					Debug.LogWarning(
+						"UniTask package not found in project. Please install UniTask to use this feature.");
+					EditorPrefs.SetBool(EnableUniTaskKey, false);
+
+					// Make sure ENABLE_UNITASK is not defined
+					if (definesList.Contains(EnableUniTask))
+					{
+						definesList.Remove(EnableUniTask);
+					}
+				}
+			}
+
+			// UniTask not enabled, so don't add ENABLE_UNITASK
+			// We don't remove it though, as it might be used elsewhere
 			// Save the updated defines
 			var newDefines = string.Join(";", definesList.ToArray());
 			PlayerSettings.SetScriptingDefineSymbolsForGroup(buildTargetGroup, newDefines);
@@ -159,6 +220,8 @@ namespace Nonatomic.ServiceLocator.Settings
 			EditorPrefs.SetBool(EnableCoroutinesKey, !definesList.Contains(DisableCoroutines));
 			EditorPrefs.SetBool(EnableSceneTrackingKey, !definesList.Contains(DisableSceneTracking));
 			EditorPrefs.SetBool(EnableLoggingKey, !definesList.Contains(DisableLogging));
+			EditorPrefs.SetBool(EnableUniTaskKey,
+				!definesList.Contains(DisableUniTask) && definesList.Contains(EnableUniTask));
 		}
 
 		/// <summary>
@@ -171,6 +234,7 @@ namespace Nonatomic.ServiceLocator.Settings
 			EditorPrefs.SetBool(EnableCoroutinesKey, DefaultEnabled);
 			EditorPrefs.SetBool(EnableSceneTrackingKey, DefaultEnabled);
 			EditorPrefs.SetBool(EnableLoggingKey, DefaultEnabled);
+			EditorPrefs.SetBool(EnableUniTaskKey, DefaultUniTaskEnabled);
 
 			UpdateScriptingDefineSymbols();
 		}

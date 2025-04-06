@@ -17,6 +17,8 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 		private readonly Toggle _loggingToggle;
 		private readonly Toggle _promisesToggle;
 		private readonly Toggle _sceneTrackingToggle;
+		private readonly Toggle _unitaskToggle;
+		private readonly Button _installUnitaskButton;
 
 		public ServiceLocatorSettingsTab()
 		{
@@ -97,6 +99,57 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 				"Enables debug logging for service registration, retrieval, and other operations.",
 				ServiceLocatorSettings.EnableLogging,
 				value => ServiceLocatorSettings.EnableLogging = value);
+				
+			// Add separator for UniTask section
+			var separator = new VisualElement();
+			separator.AddToClassList("section-separator");
+			togglesContainer.Add(separator);
+			
+			// Add UniTask section header
+			var unitaskHeader = new Label("UniTask Integration");
+			unitaskHeader.AddToClassList("section-header");
+			togglesContainer.Add(unitaskHeader);
+			
+			// Check if UniTask package exists
+			bool unitaskExists = ServiceLocatorSettings.CheckUniTaskExists();
+			
+			// Add UniTask toggle
+			var unitaskContainer = new VisualElement();
+			unitaskContainer.AddToClassList("toggle-row");
+			
+			_unitaskToggle = new Toggle { 
+				value = ServiceLocatorSettings.EnableUniTaskServices, 
+				label = "Enable UniTask Services" 
+			};
+			_unitaskToggle.tooltip = "Enables the GetServiceUniTask<T>() methods for UniTask-based service retrieval.";
+			_unitaskToggle.SetEnabled(unitaskExists);
+			_unitaskToggle.RegisterValueChangedCallback(evt => ServiceLocatorSettings.EnableUniTaskServices = evt.newValue);
+			
+			unitaskContainer.Add(_unitaskToggle);
+			togglesContainer.Add(unitaskContainer);
+			
+			// Add warning and install button if UniTask doesn't exist
+			if (!unitaskExists)
+			{
+				var warningContainer = new VisualElement();
+				warningContainer.AddToClassList("warning-container");
+				
+				var warningIcon = new Image();
+				warningIcon.AddToClassList("warning-icon");
+				warningIcon.image = EditorGUIUtility.FindTexture("console.warnicon");
+				warningContainer.Add(warningIcon);
+				
+				var warningLabel = new Label("UniTask package not found in project.");
+				warningLabel.AddToClassList("warning-text");
+				warningContainer.Add(warningLabel);
+				
+				togglesContainer.Add(warningContainer);
+				
+				_installUnitaskButton = new Button(OpenUniTaskInstallation);
+				_installUnitaskButton.text = "Install UniTask Package";
+				_installUnitaskButton.AddToClassList("install-button");
+				togglesContainer.Add(_installUnitaskButton);
+			}
 		}
 
 		/// <summary>
@@ -117,6 +170,14 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 
 			return toggle;
 		}
+		
+		/// <summary>
+		///     Opens the UniTask GitHub page with installation instructions.
+		/// </summary>
+		private void OpenUniTaskInstallation()
+		{
+			Application.OpenURL("https://github.com/Cysharp/UniTask#upm-package");
+		}
 
 		/// <summary>
 		///     Resets all settings to their default values (all features enabled).
@@ -125,7 +186,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 		{
 			if (EditorUtility.DisplayDialog("Reset Settings",
 					"Are you sure you want to reset all Service Locator settings to their defaults? " +
-					"This will enable all features.", "Reset", "Cancel"))
+					"This will enable all features except UniTask, which is disabled by default.", "Reset", "Cancel"))
 			{
 				ServiceLocatorSettings.ResetToDefaults();
 
@@ -135,6 +196,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 				_coroutinesToggle.value = ServiceLocatorSettings.EnableCoroutineServices;
 				_sceneTrackingToggle.value = ServiceLocatorSettings.EnableSceneTracking;
 				_loggingToggle.value = ServiceLocatorSettings.EnableLogging;
+				_unitaskToggle.value = ServiceLocatorSettings.EnableUniTaskServices;
 
 				EditorUtility.DisplayDialog("Settings Reset", "All settings have been reset to their defaults.", "OK");
 			}
@@ -153,6 +215,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			_coroutinesToggle.value = ServiceLocatorSettings.EnableCoroutineServices;
 			_sceneTrackingToggle.value = ServiceLocatorSettings.EnableSceneTracking;
 			_loggingToggle.value = ServiceLocatorSettings.EnableLogging;
+			_unitaskToggle.value = ServiceLocatorSettings.EnableUniTaskServices;
 
 			EditorUtility.DisplayDialog("Settings Synced", "Settings have been synced from project settings.", "OK");
 		}
