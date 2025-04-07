@@ -1,27 +1,27 @@
-﻿#if ENABLE_SL_ASYNC && !ENABLE_SL_UNITASK
+﻿#if ENABLE_SL_UNITASK && !ENABLE_SL_ASYNC
 
 #nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 
 namespace Nonatomic.ServiceLocator
 {
     public abstract partial class BaseServiceLocator
     {
-        [NonSerialized] protected readonly Dictionary<Type, List<TaskCompletionSource<object>>> AsyncPromiseMap = new();
+        [NonSerialized] protected readonly Dictionary<Type, List<UniTaskCompletionSource<object>>> UniTaskPromiseMap = new();
 
         /// <summary>
-        ///     Asynchronously retrieves a service of the specified type.
+        ///     Asynchronously retrieves a service of the specified type using UniTask.
         /// </summary>
         /// <typeparam name="T">The type of service to retrieve.</typeparam>
-        /// <returns>A Task that resolves to the requested service instance.</returns>
-        public virtual async Task<T> GetServiceAsync<T>(CancellationToken cancellation = default) where T : class
+        /// <returns>A UniTask that resolves to the requested service instance.</returns>
+        public virtual async UniTask<T> GetServiceAsync<T>(CancellationToken cancellation = default) where T : class
         {
             var serviceType = typeof(T);
-            TaskCompletionSource<object> taskCompletion;
+            UniTaskCompletionSource<object> taskCompletion;
 
             lock (Lock)
             {
@@ -30,11 +30,11 @@ namespace Nonatomic.ServiceLocator
                     return (T)service;
                 }
 
-                taskCompletion = new();
-                if (!AsyncPromiseMap.TryGetValue(serviceType, out var taskList))
+                taskCompletion = new UniTaskCompletionSource<object>();
+                if (!UniTaskPromiseMap.TryGetValue(serviceType, out var taskList))
                 {
                     taskList = new();
-                    AsyncPromiseMap[serviceType] = taskList;
+                    UniTaskPromiseMap[serviceType] = taskList;
                 }
 
                 taskList.Add(taskCompletion);
@@ -46,7 +46,7 @@ namespace Nonatomic.ServiceLocator
                 {
                     lock (Lock)
                     {
-                        if (!AsyncPromiseMap.TryGetValue(serviceType, out var taskList) ||
+                        if (!UniTaskPromiseMap.TryGetValue(serviceType, out var taskList) ||
                             !taskList.Contains(taskCompletion))
                         {
                             return;
@@ -59,7 +59,7 @@ namespace Nonatomic.ServiceLocator
                             return;
                         }
 
-                        AsyncPromiseMap.Remove(serviceType);
+                        UniTaskPromiseMap.Remove(serviceType);
                     }
                 });
             }
@@ -70,7 +70,7 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves two services of the specified types.
         /// </summary>
-        public virtual Task<(T1, T2)> GetServiceAsync<T1, T2>(CancellationToken cancellation = default)
+        public virtual UniTask<(T1, T2)> GetServiceAsync<T1, T2>(CancellationToken cancellation = default)
             where T1 : class
             where T2 : class
         {
@@ -80,7 +80,7 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves two services of the specified types.
         /// </summary>
-        public virtual async Task<(T1, T2)> GetServicesAsync<T1, T2>(CancellationToken cancellation = default)
+        public virtual async UniTask<(T1, T2)> GetServicesAsync<T1, T2>(CancellationToken cancellation = default)
             where T1 : class
             where T2 : class
         {
@@ -92,7 +92,7 @@ namespace Nonatomic.ServiceLocator
                 var task1 = GetServiceAsync<T1>(linkedToken);
                 var task2 = GetServiceAsync<T2>(linkedToken);
 
-                await Task.WhenAll(task1, task2);
+                await UniTask.WhenAll(task1, task2);
                 return (await task1, await task2);
             }
             catch (OperationCanceledException)
@@ -105,7 +105,7 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves three services of the specified types.
         /// </summary>
-        public virtual Task<(T1, T2, T3)> GetServiceAsync<T1, T2, T3>(CancellationToken cancellation = default)
+        public virtual UniTask<(T1, T2, T3)> GetServiceAsync<T1, T2, T3>(CancellationToken cancellation = default)
             where T1 : class
             where T2 : class
             where T3 : class
@@ -116,7 +116,7 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves three services of the specified types.
         /// </summary>
-        public virtual async Task<(T1, T2, T3)> GetServicesAsync<T1, T2, T3>(CancellationToken cancellation = default)
+        public virtual async UniTask<(T1, T2, T3)> GetServicesAsync<T1, T2, T3>(CancellationToken cancellation = default)
             where T1 : class
             where T2 : class
             where T3 : class
@@ -130,7 +130,7 @@ namespace Nonatomic.ServiceLocator
                 var task2 = GetServiceAsync<T2>(linkedToken);
                 var task3 = GetServiceAsync<T3>(linkedToken);
 
-                await Task.WhenAll(task1, task2, task3);
+                await UniTask.WhenAll(task1, task2, task3);
                 return (await task1, await task2, await task3);
             }
             catch (OperationCanceledException)
@@ -143,7 +143,7 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves four services of the specified types.
         /// </summary>
-        public virtual Task<(T1, T2, T3, T4)> GetServiceAsync<T1, T2, T3, T4>(CancellationToken cancellation = default)
+        public virtual UniTask<(T1, T2, T3, T4)> GetServiceAsync<T1, T2, T3, T4>(CancellationToken cancellation = default)
             where T1 : class
             where T2 : class
             where T3 : class
@@ -155,7 +155,7 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves four services of the specified types.
         /// </summary>
-        public virtual async Task<(T1, T2, T3, T4)> GetServicesAsync<T1, T2, T3, T4>(
+        public virtual async UniTask<(T1, T2, T3, T4)> GetServicesAsync<T1, T2, T3, T4>(
             CancellationToken cancellation = default)
             where T1 : class
             where T2 : class
@@ -172,7 +172,7 @@ namespace Nonatomic.ServiceLocator
                 var task3 = GetServiceAsync<T3>(linkedToken);
                 var task4 = GetServiceAsync<T4>(linkedToken);
 
-                await Task.WhenAll(task1, task2, task3, task4);
+                await UniTask.WhenAll(task1, task2, task3, task4);
                 return (await task1, await task2, await task3, await task4);
             }
             catch (OperationCanceledException)
@@ -185,7 +185,7 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves five services of the specified types.
         /// </summary>
-        public virtual Task<(T1, T2, T3, T4, T5)> GetServiceAsync<T1, T2, T3, T4, T5>(
+        public virtual UniTask<(T1, T2, T3, T4, T5)> GetServiceAsync<T1, T2, T3, T4, T5>(
             CancellationToken cancellation = default)
             where T1 : class
             where T2 : class
@@ -199,7 +199,7 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves five services of the specified types.
         /// </summary>
-        public virtual async Task<(T1, T2, T3, T4, T5)> GetServicesAsync<T1, T2, T3, T4, T5>(
+        public virtual async UniTask<(T1, T2, T3, T4, T5)> GetServicesAsync<T1, T2, T3, T4, T5>(
             CancellationToken cancellation = default)
             where T1 : class
             where T2 : class
@@ -218,7 +218,7 @@ namespace Nonatomic.ServiceLocator
                 var task4 = GetServiceAsync<T4>(linkedToken);
                 var task5 = GetServiceAsync<T5>(linkedToken);
 
-                await Task.WhenAll(task1, task2, task3, task4, task5);
+                await UniTask.WhenAll(task1, task2, task3, task4, task5);
                 return (await task1, await task2, await task3, await task4, await task5);
             }
             catch (OperationCanceledException)
@@ -231,7 +231,7 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves six services of the specified types.
         /// </summary>
-        public virtual Task<(T1, T2, T3, T4, T5, T6)> GetServiceAsync<T1, T2, T3, T4, T5, T6>(
+        public virtual UniTask<(T1, T2, T3, T4, T5, T6)> GetServiceAsync<T1, T2, T3, T4, T5, T6>(
             CancellationToken cancellation = default)
             where T1 : class
             where T2 : class
@@ -246,7 +246,7 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves six services of the specified types.
         /// </summary>
-        public virtual async Task<(T1, T2, T3, T4, T5, T6)> GetServicesAsync<T1, T2, T3, T4, T5, T6>(
+        public virtual async UniTask<(T1, T2, T3, T4, T5, T6)> GetServicesAsync<T1, T2, T3, T4, T5, T6>(
             CancellationToken cancellation = default)
             where T1 : class
             where T2 : class
@@ -267,7 +267,7 @@ namespace Nonatomic.ServiceLocator
                 var task5 = GetServiceAsync<T5>(linkedToken);
                 var task6 = GetServiceAsync<T6>(linkedToken);
 
-                await Task.WhenAll(task1, task2, task3, task4, task5, task6);
+                await UniTask.WhenAll(task1, task2, task3, task4, task5, task6);
                 return (await task1, await task2, await task3, await task4, await task5, await task6);
             }
             catch (OperationCanceledException)
@@ -280,7 +280,7 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Rejects all pending promises for a specific service type with an exception.
         /// </summary>
-        public virtual void RejectAsyncService<T>(Exception exception) where T : class
+        public virtual void RejectUniTaskService<T>(Exception exception) where T : class
         {
             if (exception == null)
             {
@@ -290,7 +290,7 @@ namespace Nonatomic.ServiceLocator
             lock (Lock)
             {
                 var serviceType = typeof(T);
-                RejectAsyncPromises(serviceType, exception);
+                RejectUniTaskPromises(serviceType, exception);
             }
         }
 
@@ -299,9 +299,9 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Resolves promises for a specific service type.
         /// </summary>
-        protected override void ResolveAsyncPromises(Type serviceType, object service)
+        protected override void ResolveUniTaskPromises(Type serviceType, object service)
         {
-            if (!AsyncPromiseMap.TryGetValue(serviceType, out var taskCompletions))
+            if (!UniTaskPromiseMap.TryGetValue(serviceType, out var taskCompletions))
             {
                 return;
             }
@@ -311,15 +311,15 @@ namespace Nonatomic.ServiceLocator
                 tcs.TrySetResult(service);
             }
 
-            AsyncPromiseMap.Remove(serviceType);
+            UniTaskPromiseMap.Remove(serviceType);
         }
 
         /// <summary>
         ///     Rejects promises for a specific service type.
         /// </summary>
-        protected override void RejectAsyncPromises(Type serviceType, Exception? exception = null)
+        protected override void RejectUniTaskPromises(Type serviceType, Exception? exception = null)
         {
-            if (!AsyncPromiseMap.TryGetValue(serviceType, out var taskList))
+            if (!UniTaskPromiseMap.TryGetValue(serviceType, out var taskList))
             {
                 return;
             }
@@ -333,15 +333,15 @@ namespace Nonatomic.ServiceLocator
                 tcs.TrySetException(ex);
             }
 
-            AsyncPromiseMap.Remove(serviceType);
+            UniTaskPromiseMap.Remove(serviceType);
         }
 
         /// <summary>
         ///     Cancels and removes all unfulfilled promises.
         /// </summary>
-        protected override void CleanupAsyncPromises()
+        protected override void CleanupUniTaskPromises()
         {
-            foreach (var promiseList in AsyncPromiseMap.Values)
+            foreach (var promiseList in UniTaskPromiseMap.Values)
             {
                 foreach (var promise in promiseList.ToList())
                 {
@@ -349,7 +349,7 @@ namespace Nonatomic.ServiceLocator
                 }
             }
 
-            AsyncPromiseMap.Clear();
+            UniTaskPromiseMap.Clear();
         }
     }
 }

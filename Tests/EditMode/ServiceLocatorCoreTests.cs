@@ -247,26 +247,35 @@ namespace Tests.EditMode
 			// Instead of looking for specific methods by name and parameter types,
 			// check for the existence of methods with specific patterns
 
-			#if !DISABLE_SL_ASYNC
+			#if ENABLE_SL_ASYNC || !DISABLE_SL_ASYNC
 			// Look for any method that starts with "GetServiceAsync"
 			var hasAsyncMethods = locatorType.GetMethods()
 				.Any(m => m.Name.StartsWith("GetServiceAsync"));
-			Assert.IsTrue(hasAsyncMethods, "GetServiceAsync methods should exist when DISABLE_SL_ASYNC is not defined");
+			Assert.IsTrue(hasAsyncMethods, "GetServiceAsync methods should exist when ENABLE_SL_ASYNC is defined or DISABLE_SL_ASYNC is not defined");
 			#else
             // Look for any method that starts with "GetServiceAsync"
             var hasAsyncMethods = locatorType.GetMethods()
                 .Any(m => m.Name.StartsWith("GetServiceAsync"));
-            Assert.IsFalse(hasAsyncMethods, "GetServiceAsync methods should not exist when DISABLE_SL_ASYNC is defined");
+            Assert.IsFalse(hasAsyncMethods, "GetServiceAsync methods should not exist when ENABLE_SL_ASYNC is not defined and DISABLE_SL_ASYNC is defined");
 			#endif
 
-			#if !DISABLE_SL_PROMISES
+			#if ENABLE_SL_UNITASK
+			// Look for any method that starts with "GetServiceAsync" and returns UniTask
+			var hasUniTaskMethods = locatorType.GetMethods()
+				.Any(m => m.Name.StartsWith("GetServiceAsync") && 
+				          m.ReturnType.FullName != null && 
+				          m.ReturnType.FullName.Contains("UniTask"));
+			Assert.IsTrue(hasUniTaskMethods, "GetServiceAsync methods returning UniTask should exist when ENABLE_SL_UNITASK is defined");
+			#endif
+
+			#if ENABLE_SL_PROMISES || !DISABLE_SL_PROMISES
             // Look for any GetService method that returns IServicePromise
             var hasPromiseMethods = locatorType.GetMethods()
                 .Any(m => m.Name == "GetService" &&
                        m.ReturnType.IsGenericType &&
                        m.ReturnType.GetGenericTypeDefinition().Name.StartsWith("IServicePromise"));
             Assert.IsTrue(hasPromiseMethods,
-                "GetService methods returning IServicePromise should exist when DISABLE_SL_PROMISES is not defined");
+                "GetService methods returning IServicePromise should exist when ENABLE_SL_PROMISES is defined or DISABLE_SL_PROMISES is not defined");
 			#else
 			// Look for any GetService method that returns IServicePromise
 			var hasPromiseMethods = locatorType.GetMethods()
@@ -274,55 +283,84 @@ namespace Tests.EditMode
 						  m.ReturnType.IsGenericType &&
 						  m.ReturnType.GetGenericTypeDefinition().Name.StartsWith("IServicePromise"));
 			Assert.IsFalse(hasPromiseMethods,
-				"GetService methods returning IServicePromise should not exist when DISABLE_SL_PROMISES is defined");
+				"GetService methods returning IServicePromise should not exist when ENABLE_SL_PROMISES is not defined and DISABLE_SL_PROMISES is defined");
 			#endif
 
-			#if !DISABLE_SL_COROUTINES
+			#if ENABLE_SL_COROUTINES || !DISABLE_SL_COROUTINES
             // Look for any GetServiceCoroutine method
             var hasCoroutineMethods = locatorType.GetMethods()
                 .Any(m => m.Name == "GetServiceCoroutine");
-            Assert.IsTrue(hasCoroutineMethods, "GetServiceCoroutine methods should exist when DISABLE_SL_COROUTINES is not defined");
+            Assert.IsTrue(hasCoroutineMethods, "GetServiceCoroutine methods should exist when ENABLE_SL_COROUTINES is defined or DISABLE_SL_COROUTINES is not defined");
 			#else
 			// Look for any GetServiceCoroutine method
 			var hasCoroutineMethods = locatorType.GetMethods()
 				.Any(m => m.Name == "GetServiceCoroutine");
 			Assert.IsFalse(hasCoroutineMethods,
-				"GetServiceCoroutine methods should not exist when DISABLE_SL_COROUTINES is defined");
+				"GetServiceCoroutine methods should not exist when ENABLE_SL_COROUTINES is not defined and DISABLE_SL_COROUTINES is defined");
 			#endif
 
-			#if !DISABLE_SL_SCENE_TRACKING
+			#if ENABLE_SL_SCENE_TRACKING || !DISABLE_SL_SCENE_TRACKING
 			// Look for scene-related methods
 			var hasSceneTrackingMethods = locatorType.GetMethods()
 				.Any(m => m.Name == "GetSceneNameForService" || m.Name == "UnregisterServicesFromScene");
 			Assert.IsTrue(hasSceneTrackingMethods,
-				"Scene tracking methods should exist when DISABLE_SL_SCENE_TRACKING is not defined");
+				"Scene tracking methods should exist when ENABLE_SL_SCENE_TRACKING is defined or DISABLE_SL_SCENE_TRACKING is not defined");
 			#else
             // Look for scene-related methods
             bool hasSceneTrackingMethods = locatorType.GetMethods()
                 .Any(m => m.Name == "GetSceneNameForService" || m.Name == "UnregisterServicesFromScene");
-            Assert.IsFalse(hasSceneTrackingMethods, "Scene tracking methods should not exist when DISABLE_SL_SCENE_TRACKING is defined");
+            Assert.IsFalse(hasSceneTrackingMethods, "Scene tracking methods should not exist when ENABLE_SL_SCENE_TRACKING is not defined and DISABLE_SL_SCENE_TRACKING is defined");
 			#endif
 		}
 		#endif
 
-		#if !DISABLE_SL_SCENE_TRACKING
+		#if ENABLE_SL_SCENE_TRACKING || !DISABLE_SL_SCENE_TRACKING
 		[UnityTest]
 		public IEnumerator SceneUnload_RemovesSceneSpecificServices()
 		{
-			// Mock scene unloading by directly calling the handler
-			var service = new TestService();
-			_serviceLocator.Register(service);
+			// Use the scene tracking test helper instead of regular test service locator
+			var sceneTrackingLocator = ScriptableObject.CreateInstance<SceneTrackingTestLocator>();
+			
+			try
+			{
+				// Register a service
+				var service = new TestService();
+				sceneTrackingLocator.Register(service);
 
-			// Get the scene name from the service map
-			var sceneName = _serviceLocator.GetSceneNameForService(typeof(TestService));
+				// Manually associate with scene (this is a test-only method)
+				const string testSceneName = "TestScene";
+				sceneTrackingLocator.AssociateWithScene(typeof(TestService), testSceneName);
 
-			// Simulate scene unloading
-			_serviceLocator.UnregisterServicesFromScene(sceneName);
+				// Verify service is registered
+				Assert.IsTrue(sceneTrackingLocator.TryGetService(out TestService _));
 
-			Assert.IsFalse(_serviceLocator.TryGetService(out TestService _),
-				"Service should be unregistered when its scene is unloaded");
+				// Simulate scene unloading
+				sceneTrackingLocator.UnregisterServicesFromScene(testSceneName);
 
-			yield return null;
+				// Verify service is removed
+				Assert.IsFalse(sceneTrackingLocator.TryGetService(out TestService _),
+					"Service should be unregistered when its scene is unloaded");
+
+				yield return null;
+			}
+			finally
+			{
+				// Clean up
+				Object.DestroyImmediate(sceneTrackingLocator);
+			}
+		}
+		
+		// Special helper class that only exists when scene tracking is enabled
+		private class SceneTrackingTestLocator : ServiceLocator
+		{
+			public void AssociateWithScene(Type serviceType, string sceneName)
+			{
+				// Direct access to the protected scene map
+				lock (Lock)
+				{
+					ServiceSceneMap[serviceType] = sceneName;
+				}
+			}
 		}
 		#endif
 

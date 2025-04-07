@@ -5,52 +5,48 @@ using UnityEngine;
 
 namespace Tests.PlayMode
 {
-	/// <summary>
-	///     Test MonoBehaviour that retrieves services using promises
-	/// </summary>
-	public class ServiceUserPromise : MonoBehaviour
-	{
-		private BaseServiceLocator _serviceLocator;
-		private ServiceLocatorTestUtils.TestService _service;
+    /// <summary>
+    ///     Test MonoBehaviour that retrieves services using promises
+    /// </summary>
+    public class ServiceUserPromise : MonoBehaviour
+    {
+       private BaseServiceLocator _serviceLocator;
+       private ServiceLocatorTestUtils.TestService _service;
 
-		// This is used for automatic cancellation when the MonoBehaviour is destroyed
-		public readonly CancellationTokenSource destroyCancellationTokenSource = new();
-		public CancellationToken destroyCancellationToken => destroyCancellationTokenSource.Token;
+       // This is used for automatic cancellation when the MonoBehaviour is destroyed
+       public readonly CancellationTokenSource destroyCancellationTokenSource = new();
+       public CancellationToken destroyCancellationToken => destroyCancellationTokenSource.Token;
 
-		// Flags for test verification
-		public bool ThenCalled { get; private set; }
+       // Flags for test verification
+       public bool ThenCalled { get; private set; }
+       public bool CatchCalled { get; private set; }
+       public Exception CaughtException { get; private set; }
 
-		public bool CatchCalled { get; private set; }
+       public void Initialize(BaseServiceLocator serviceLocator)
+       {
+          _serviceLocator = serviceLocator;
+       }
 
-		public Exception CaughtException { get; private set; }
-
-		public void Initialize(BaseServiceLocator serviceLocator)
-		{
-			_serviceLocator = serviceLocator;
-		}
-
-		#if !DISABLE_SL_PROMISES
-		private void Start()
-		{
-			// Get the service using promises
-			_serviceLocator
-				.GetService<
-					ServiceLocatorTestUtils.TestService>(
-					destroyCancellationToken) // Fixed: added namespace to TestService
-				.Then(service =>
-				{
-					_service = service;
-					ThenCalled = true; // Fixed: using property instead of undefined _thenCalled
-					Debug.Log($"Service retrieved via promise: {_service.Message}");
-				})
-				.Catch(ex =>
-				{
-					CatchCalled = true; // Fixed: using property instead of undefined _catchCalled
-					CaughtException = ex; // Fixed: using property instead of undefined _caughtException
-					Debug.LogWarning($"Promise failed: {ex.Message}");
-				});
-		}
-		#else
+       #if ENABLE_SL_PROMISES || !DISABLE_SL_PROMISES
+       private void Start()
+       {
+          // Get the service using promises
+          _serviceLocator
+             .GetService<ServiceLocatorTestUtils.TestService>(destroyCancellationToken)
+             .Then(service =>
+             {
+                _service = service;
+                ThenCalled = true;
+                Debug.Log($"Service retrieved via promise: {_service.Message}");
+             })
+             .Catch(ex =>
+             {
+                CatchCalled = true;
+                CaughtException = ex;
+                Debug.LogWarning($"Promise failed: {ex.Message}");
+             });
+       }
+       #else
        private void Start()
        {
           // Fallback when promises are disabled
@@ -67,18 +63,18 @@ namespace Tests.PlayMode
              Debug.LogWarning("Service retrieval via TryGetService failed");
           }
        }
-		#endif
+       #endif
 
-		// Method for testing purposes to retrieve the service
-		public ServiceLocatorTestUtils.TestService GetRetrievedService()
-		{
-			return _service;
-		}
+       // Method for testing purposes to retrieve the service
+       public ServiceLocatorTestUtils.TestService GetRetrievedService()
+       {
+          return _service;
+       }
 
-		private void OnDestroy()
-		{
-			destroyCancellationTokenSource.Cancel();
-			destroyCancellationTokenSource.Dispose();
-		}
-	}
+       private void OnDestroy()
+       {
+          destroyCancellationTokenSource.Cancel();
+          destroyCancellationTokenSource.Dispose();
+       }
+    }
 }

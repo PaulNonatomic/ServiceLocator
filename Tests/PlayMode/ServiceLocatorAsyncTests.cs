@@ -1,4 +1,4 @@
-﻿#if !DISABLE_SL_ASYNC
+﻿#if ENABLE_SL_ASYNC || !DISABLE_SL_ASYNC
 using System;
 using System.Collections;
 using System.Linq;
@@ -160,7 +160,11 @@ namespace Tests.PlayMode
 			yield return null;
 
 			// Reject the service with the custom exception
+			#if ENABLE_SL_ASYNC
+			_serviceLocator.RejectAsyncService<ServiceLocatorTestUtils.TestService>(customException);
+			#else
 			_serviceLocator.RejectService<ServiceLocatorTestUtils.TestService>(customException);
+			#endif
 
 			// Wait for task to complete (should be faulted)
 			yield return new WaitUntil(() => task.IsCompleted);

@@ -1,4 +1,4 @@
-﻿#if !DISABLE_SL_SCENE_TRACKING
+﻿#if ENABLE_SL_SCENE_TRACKING || !DISABLE_SL_SCENE_TRACKING
 using System;
 using System.Collections;
 using Nonatomic.ServiceLocator;

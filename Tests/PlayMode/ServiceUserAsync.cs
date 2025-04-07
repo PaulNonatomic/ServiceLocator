@@ -21,7 +21,7 @@ namespace Tests.PlayMode
           _serviceLocator = serviceLocator;
        }
 
-       #if !DISABLE_SL_ASYNC
+       #if ENABLE_SL_ASYNC || !DISABLE_SL_ASYNC
        private async void Start()
        {
           try
@@ -60,7 +60,7 @@ namespace Tests.PlayMode
           return _service;
        }
 
-       #if !DISABLE_SL_ASYNC
+       #if ENABLE_SL_ASYNC || !DISABLE_SL_ASYNC
        public Task<ServiceLocatorTestUtils.TestService> GetServiceTask()
        {
           return _serviceTask;

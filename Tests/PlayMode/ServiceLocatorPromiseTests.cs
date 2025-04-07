@@ -1,4 +1,4 @@
-﻿#if !DISABLE_SL_PROMISES
+﻿#if ENABLE_SL_PROMISES || !DISABLE_SL_PROMISES
 using System;
 using System.Collections;
 using System.Threading;

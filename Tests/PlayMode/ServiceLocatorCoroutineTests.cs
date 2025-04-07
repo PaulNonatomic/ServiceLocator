@@ -1,4 +1,4 @@
-﻿#if !DISABLE_SL_COROUTINES
+﻿#if ENABLE_SL_COROUTINES || !DISABLE_SL_COROUTINES
 using System.Collections;
 using Nonatomic.ServiceLocator;
 using NUnit.Framework;
