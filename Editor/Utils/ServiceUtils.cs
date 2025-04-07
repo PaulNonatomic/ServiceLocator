@@ -1,16 +1,14 @@
-﻿using System;
-using UnityEngine;
-using UnityEngine.SceneManagement;
+﻿using UnityEngine.SceneManagement;
 
 namespace Nonatomic.ServiceLocator.Utils
 {
-    public static class ServiceUtils
-    {
-       // Special scene name for unloaded scenes
-       public const string UnloadedScenePrefix = "__UNLOADED__";
-       public const string DontDestroyOnLoadSceneName = "DontDestroyOnLoad";
+	public static class ServiceUtils
+	{
+		// Special scene name for unloaded scenes
+		public const string UnloadedScenePrefix = "__UNLOADED__";
+		public const string DontDestroyOnLoadSceneName = "DontDestroyOnLoad";
 
-	   #if ENABLE_SL_SCENE_TRACKING
+		#if ENABLE_SL_SCENE_TRACKING
        public static SceneInfo GetSceneInfoForService(object service, Type serviceType, ServiceLocator locator)
        {
           var recordedSceneName = locator.GetSceneNameForService(serviceType);
@@ -75,22 +73,22 @@ namespace Nonatomic.ServiceLocator.Utils
                 recordedSceneName != "No Scene");
           }
        }
-       #endif
+		#endif
 
-       public class SceneInfo
-       {
-          public SceneInfo(Scene scene, string sceneName, bool isUnloaded, bool isDontDestroyOnLoad = false)
-          {
-             Scene = scene;
-             SceneName = sceneName;
-             IsUnloaded = isUnloaded;
-             IsDontDestroyOnLoad = isDontDestroyOnLoad;
-          }
+		public class SceneInfo
+		{
+			public SceneInfo(Scene scene, string sceneName, bool isUnloaded, bool isDontDestroyOnLoad = false)
+			{
+				Scene = scene;
+				SceneName = sceneName;
+				IsUnloaded = isUnloaded;
+				IsDontDestroyOnLoad = isDontDestroyOnLoad;
+			}
 
-          public Scene Scene { get; }
-          public string SceneName { get; }
-          public bool IsUnloaded { get; }
-          public bool IsDontDestroyOnLoad { get; }
-       }
-    }
+			public Scene Scene { get; }
+			public string SceneName { get; }
+			public bool IsUnloaded { get; }
+			public bool IsDontDestroyOnLoad { get; }
+		}
+	}
 }

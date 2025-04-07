@@ -1,5 +1,4 @@
 ﻿#if ENABLE_SL_COROUTINES
-
 #nullable enable
 using System;
 using System.Collections;
@@ -173,7 +172,8 @@ namespace Nonatomic.ServiceLocator
         /// </summary>
         protected override void ResolvePendingCoroutines(Type serviceType, object service)
         {
-            var pendingCoroutines = PendingCoroutines.FindAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
+            var pendingCoroutines =
+ PendingCoroutines.FindAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
             foreach (var (_, callback) in pendingCoroutines)
             {
                 callback(service);

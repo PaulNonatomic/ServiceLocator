@@ -1,5 +1,4 @@
 ﻿#if ENABLE_SL_ASYNC && !ENABLE_SL_UNITASK
-
 #nullable enable
 using System;
 using System.Collections.Generic;

@@ -1,5 +1,4 @@
 ﻿#if ENABLE_SL_UNITASK && !ENABLE_SL_ASYNC
-
 #nullable enable
 using System;
 using System.Collections.Generic;
@@ -11,7 +10,8 @@ namespace Nonatomic.ServiceLocator
 {
     public abstract partial class BaseServiceLocator
     {
-        [NonSerialized] protected readonly Dictionary<Type, List<UniTaskCompletionSource<object>>> UniTaskPromiseMap = new();
+        [NonSerialized] protected readonly Dictionary<Type, List<UniTaskCompletionSource<object>>> UniTaskPromiseMap =
+ new();
 
         /// <summary>
         ///     Asynchronously retrieves a service of the specified type using UniTask.
@@ -116,7 +116,8 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves three services of the specified types.
         /// </summary>
-        public virtual async UniTask<(T1, T2, T3)> GetServicesAsync<T1, T2, T3>(CancellationToken cancellation = default)
+        public virtual async UniTask<(T1, T2, T3)> GetServicesAsync<T1, T2, T3>(CancellationToken cancellation =
+ default)
             where T1 : class
             where T2 : class
             where T3 : class
@@ -143,7 +144,8 @@ namespace Nonatomic.ServiceLocator
         /// <summary>
         ///     Asynchronously retrieves four services of the specified types.
         /// </summary>
-        public virtual UniTask<(T1, T2, T3, T4)> GetServiceAsync<T1, T2, T3, T4>(CancellationToken cancellation = default)
+        public virtual UniTask<(T1, T2, T3, T4)> GetServiceAsync<T1, T2, T3, T4>(CancellationToken cancellation =
+ default)
             where T1 : class
             where T2 : class
             where T3 : class

@@ -3,13 +3,13 @@
 namespace Tests.PlayMode
 {
 	/// <summary>
-	/// Shared test classes and utilities for Service Locator tests.
-	/// This keeps common test components in one place to avoid duplication.
+	///     Shared test classes and utilities for Service Locator tests.
+	///     This keeps common test components in one place to avoid duplication.
 	/// </summary>
 	public static class ServiceLocatorTestUtils
 	{
 		/// <summary>
-		/// Basic test service
+		///     Basic test service
 		/// </summary>
 		public class TestService
 		{
@@ -17,21 +17,21 @@ namespace Tests.PlayMode
 		}
 
 		/// <summary>
-		/// Another test service
+		///     Another test service
 		/// </summary>
 		public class AnotherTestService
 		{
 		}
 
 		/// <summary>
-		/// Third test service
+		///     Third test service
 		/// </summary>
 		public class ThirdTestService
 		{
 		}
 
 		/// <summary>
-		/// Test service that implements IDisposable
+		///     Test service that implements IDisposable
 		/// </summary>
 		public class DisposableTestService : IDisposable
 		{
@@ -44,28 +44,28 @@ namespace Tests.PlayMode
 		}
 
 		/// <summary>
-		/// Base service for inheritance tests
+		///     Base service for inheritance tests
 		/// </summary>
 		public class BaseTestService
 		{
 		}
 
 		/// <summary>
-		/// Derived service for inheritance tests
+		///     Derived service for inheritance tests
 		/// </summary>
 		public class DerivedTestService : BaseTestService
 		{
 		}
 
 		/// <summary>
-		/// Interface for interface testing
+		///     Interface for interface testing
 		/// </summary>
 		public interface ITestServiceInterface
 		{
 		}
 
 		/// <summary>
-		/// Implementation of test interface
+		///     Implementation of test interface
 		/// </summary>
 		public class InterfaceImplementingService : ITestServiceInterface
 		{

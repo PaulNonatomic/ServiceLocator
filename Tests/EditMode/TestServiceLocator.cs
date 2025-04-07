@@ -2,12 +2,30 @@
 
 namespace Tests.EditMode
 {
-	internal class TestService { }
-	internal class AnotherTestService { }
-	internal class ThirdTestService { }
-	
+	internal class TestService
+	{
+	}
+
+	internal class AnotherTestService
+	{
+	}
+
+	internal class ThirdTestService
+	{
+	}
+
 	internal class TestServiceLocator : BaseServiceLocator
 	{
+		public new void OnEnable()
+		{
+			base.OnEnable();
+		}
+
+		public new void OnDisable()
+		{
+			base.OnDisable();
+		}
+
 		public void ForceInitialize()
 		{
 			Initialize();
@@ -19,9 +37,6 @@ namespace Tests.EditMode
 			DeInitialize();
 			IsInitialized = false;
 		}
-
-		public new void OnEnable() => base.OnEnable();
-		public new void OnDisable() => base.OnDisable();
 
 		// Override to prevent automatic initialization
 		protected override void Initialize()

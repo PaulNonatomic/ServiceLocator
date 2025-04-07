@@ -26,7 +26,10 @@ namespace Nonatomic.ServiceLocator.Utils
 			AssetDatabase.SaveAssets();
 			AssetDatabase.Refresh();
 			EditorUtility.FocusProjectWindow();
-			if(selectInstance) Selection.activeObject = asset;
+			if (selectInstance)
+			{
+				Selection.activeObject = asset;
+			}
 
 			return asset;
 		}

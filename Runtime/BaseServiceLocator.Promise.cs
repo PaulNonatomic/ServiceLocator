@@ -1,5 +1,4 @@
 ﻿#if ENABLE_SL_PROMISES
-
 #nullable enable
 using System;
 using System.Collections.Generic;

@@ -6,40 +6,41 @@ using UnityEngine;
 
 namespace Tests.PlayMode
 {
-    public class ServiceUserAsync : MonoBehaviour
-    {
-       private BaseServiceLocator _serviceLocator;
-       private ServiceLocatorTestUtils.TestService _service;
-       private Task<ServiceLocatorTestUtils.TestService> _serviceTask;
+	public class ServiceUserAsync : MonoBehaviour
+	{
+		private BaseServiceLocator _serviceLocator;
+		private ServiceLocatorTestUtils.TestService _service;
+		private Task<ServiceLocatorTestUtils.TestService> _serviceTask;
 
-       // This is used for automatic cancellation when the MonoBehaviour is destroyed
-       public readonly CancellationTokenSource destroyCancellationTokenSource = new();
-       public CancellationToken destroyCancellationToken => destroyCancellationTokenSource.Token;
+		// This is used for automatic cancellation when the MonoBehaviour is destroyed
+		public readonly CancellationTokenSource destroyCancellationTokenSource = new();
+		public CancellationToken destroyCancellationToken => destroyCancellationTokenSource.Token;
 
-       public void Initialize(BaseServiceLocator serviceLocator)
-       {
-          _serviceLocator = serviceLocator;
-       }
+		public void Initialize(BaseServiceLocator serviceLocator)
+		{
+			_serviceLocator = serviceLocator;
+		}
 
-       #if ENABLE_SL_ASYNC || !DISABLE_SL_ASYNC
-       private async void Start()
-       {
-          try
-          {
-             _serviceTask = _serviceLocator.GetServiceAsync<ServiceLocatorTestUtils.TestService>(destroyCancellationToken);
-             _service = await _serviceTask;
-             Debug.Log(_service.Message);
-          }
-          catch (OperationCanceledException)
-          {
-             Debug.Log("Service retrieval was canceled due to MonoBehaviour destruction.");
-          }
-          catch (Exception ex)
-          {
-             Debug.LogError($"Failed to retrieve service: {ex.Message}");
-          }
-       }
-       #else
+		#if ENABLE_SL_ASYNC || !DISABLE_SL_ASYNC
+		private async void Start()
+		{
+			try
+			{
+				_serviceTask =
+					_serviceLocator.GetServiceAsync<ServiceLocatorTestUtils.TestService>(destroyCancellationToken);
+				_service = await _serviceTask;
+				Debug.Log(_service.Message);
+			}
+			catch (OperationCanceledException)
+			{
+				Debug.Log("Service retrieval was canceled due to MonoBehaviour destruction.");
+			}
+			catch (Exception ex)
+			{
+				Debug.LogError($"Failed to retrieve service: {ex.Message}");
+			}
+		}
+		#else
         private void Start()
         {
             // Alternative implementation when async services are disabled
@@ -53,24 +54,24 @@ namespace Tests.PlayMode
                 Debug.LogError("Failed to retrieve service via TryGetService.");
             }
         }
-       #endif
+		#endif
 
-       public ServiceLocatorTestUtils.TestService GetRetrievedService()
-       {
-          return _service;
-       }
+		public ServiceLocatorTestUtils.TestService GetRetrievedService()
+		{
+			return _service;
+		}
 
-       #if ENABLE_SL_ASYNC || !DISABLE_SL_ASYNC
-       public Task<ServiceLocatorTestUtils.TestService> GetServiceTask()
-       {
-          return _serviceTask;
-       }
-       #endif
+		#if ENABLE_SL_ASYNC || !DISABLE_SL_ASYNC
+		public Task<ServiceLocatorTestUtils.TestService> GetServiceTask()
+		{
+			return _serviceTask;
+		}
+		#endif
 
-       private void OnDestroy()
-       {
-          destroyCancellationTokenSource.Cancel();
-          destroyCancellationTokenSource.Dispose();
-       }
-    }
+		private void OnDestroy()
+		{
+			destroyCancellationTokenSource.Cancel();
+			destroyCancellationTokenSource.Dispose();
+		}
+	}
 }

@@ -12,24 +12,30 @@ namespace Nonatomic.ServiceLocator.PropertyDrawers
 
 		public override VisualElement CreatePropertyGUI(SerializedProperty property)
 		{
-			if (GuardAgainstDestroyedSerializedObject(property)) return default;
-			
+			if (GuardAgainstDestroyedSerializedObject(property))
+			{
+				return default;
+			}
+
 			if (property.objectReferenceValue == null)
 			{
 				property.objectReferenceValue = AssetUtils.FindAssetByType<ServiceLocator>();
 				property.serializedObject.ApplyModifiedProperties();
 			}
-			
+
 			var root = CreateRoot();
 			CreateServiceLocatorField(property, root);
-			
+
 			return root;
 		}
-		
+
 		private static VisualElement CreateServiceLocatorField(SerializedProperty property, VisualElement container)
 		{
-			if (GuardAgainstDestroyedSerializedObject(property)) return default;
-			
+			if (GuardAgainstDestroyedSerializedObject(property))
+			{
+				return default;
+			}
+
 			var serviceLocatorField = new ObjectField("Service Locator")
 			{
 				objectType = typeof(ServiceLocator),
@@ -47,7 +53,7 @@ namespace Nonatomic.ServiceLocator.PropertyDrawers
 
 			return serviceLocatorField;
 		}
-		
+
 		private static VisualElement CreateRoot()
 		{
 			var root = new VisualElement
@@ -61,10 +67,10 @@ namespace Nonatomic.ServiceLocator.PropertyDrawers
 
 			return root;
 		}
-		
+
 		private static bool GuardAgainstDestroyedSerializedObject(SerializedProperty property)
 		{
-			return property?.serializedObject == null || 
+			return property?.serializedObject == null ||
 				   property.serializedObject.targetObject == null;
 		}
 	}

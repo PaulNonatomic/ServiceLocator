@@ -10,13 +10,13 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 	{
 		// Static counter to track item position for alternating colors
 		private static int _itemCounter;
-		private readonly Label _serviceLabel;
 		private readonly Texture2D _hoverIcon;
 
 		// References to the icons
 		private readonly Image _icon;
 		private readonly Color _iconColor;
 		private readonly Texture2D _normalIcon;
+		private readonly Label _serviceLabel;
 
 		public ServiceItem(Type serviceType, object serviceInstance, SceneType sceneType = SceneType.Regular)
 		{

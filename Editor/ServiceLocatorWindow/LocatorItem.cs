@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Nonatomic.ServiceLocator.Utils;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
@@ -151,7 +150,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			foreach (var (serviceType, serviceInstance) in services)
 			{
 				var sceneKey = "Unknown";
-				
+
 				// Get scene info for this service
 				#if ENABLE_SL_SCENE_TRACKING
 				var sceneInfo = ServiceUtils.GetSceneInfoForService(serviceInstance, serviceType, _locator);
@@ -186,7 +185,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 					result[sceneKey] = sceneGroup;
 				}
 				#else
-				
+
 				// Add to appropriate scene group
 				var currentScene = SceneManager.GetActiveScene();
 				if (!result.TryGetValue(sceneKey, out var sceneGroup))
@@ -200,7 +199,7 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 					};
 					result[sceneKey] = sceneGroup;
 				}
-				
+
 				#endif
 
 
