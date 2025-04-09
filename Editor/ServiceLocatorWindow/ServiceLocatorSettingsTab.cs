@@ -12,19 +12,169 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 	/// </summary>
 	public class ServiceLocatorSettingsTab : VisualElement
 	{
-		private readonly Toggle _asyncToggle;
-		private readonly Toggle _coroutinesToggle;
-		private readonly Toggle _loggingToggle;
-		private readonly Toggle _promisesToggle;
-		private readonly Toggle _sceneTrackingToggle;
-		private readonly Toggle _unitaskToggle;
-		private readonly Button _installUnitaskButton;
+		private Toggle _asyncToggle;
+		private Toggle _coroutinesToggle;
+		private Toggle _loggingToggle;
+		private Toggle _promisesToggle;
+		private Toggle _sceneTrackingToggle;
+		private Toggle _unitaskToggle;
+		private Button _installUnitaskButton;
+		private bool _initialAsyncValue;
+		private bool _initialUniTaskValue;
 
 		public ServiceLocatorSettingsTab()
 		{
-			// Create the root container
 			AddToClassList("settings-tab");
+			CreateTitleBar();
 
+			// Add description
+			var descriptionLabel = new Label(
+				"Configure which features of the Service Locator are enabled. " +
+				"Disabling features will add the corresponding preprocessor directive to exclude the code from compilation.");
+			descriptionLabel.AddToClassList("settings-description");
+			Add(descriptionLabel);
+
+			SetInitialFeatureValues();
+			CreateFeaturesSection();
+			CreateIntegrationsSection();
+		}
+
+		private void SetInitialFeatureValues()
+		{
+			_initialAsyncValue = ServiceLocatorSettings.EnableAsyncServices;
+			_initialUniTaskValue = ServiceLocatorSettings.EnableUniTaskServices;
+			
+			if (_initialAsyncValue)
+			{
+				_initialUniTaskValue = false;
+			}
+		}
+
+		private void CreateFeaturesSection()
+		{
+			// Add a container for the toggles
+			var togglesContainer = new VisualElement();
+			togglesContainer.AddToClassList("toggles-container");
+			Add(togglesContainer);
+			
+			// Add toggles for each feature
+			_asyncToggle = AddFeatureToggle(togglesContainer, "Enable Async Services",
+				"Enables the GetServiceAsync<T>() methods for Task-based service retrieval.",
+				_initialAsyncValue,
+				HandleAsyncToggleValueChanged);
+
+			_promisesToggle = AddFeatureToggle(togglesContainer, "Enable Promise Services",
+				"Enables the GetService<T>() methods that return IServicePromise<T>.",
+				ServiceLocatorSettings.EnablePromiseServices,
+				value => ServiceLocatorSettings.EnablePromiseServices = value);
+
+			_coroutinesToggle = AddFeatureToggle(togglesContainer, "Enable Coroutine Services",
+				"Enables the GetServiceCoroutine<T>() methods for Unity coroutine-based service retrieval.",
+				ServiceLocatorSettings.EnableCoroutineServices,
+				value => ServiceLocatorSettings.EnableCoroutineServices = value);
+
+			_sceneTrackingToggle = AddFeatureToggle(togglesContainer, "Enable Scene Tracking",
+				"Enables automatic tracking and cleanup of services when scenes are unloaded.",
+				ServiceLocatorSettings.EnableSceneTracking,
+				value => ServiceLocatorSettings.EnableSceneTracking = value);
+
+			_loggingToggle = AddFeatureToggle(togglesContainer, "Enable Logging",
+				"Enables debug logging for service registration, retrieval, and other operations.",
+				ServiceLocatorSettings.EnableLogging,
+				value => ServiceLocatorSettings.EnableLogging = value);
+		}
+
+		private void CreateIntegrationsSection()
+		{
+			// Integrations
+			var integrationTogglesContainer = new VisualElement();
+			integrationTogglesContainer.AddToClassList("toggles-container");
+			Add(integrationTogglesContainer);
+			
+			var headerLabel = new Label("Integrations");
+			headerLabel.AddToClassList("settings-header");
+			integrationTogglesContainer.Add(headerLabel);
+				
+			// Add separator for UniTask section
+			var separator = new VisualElement();
+			separator.AddToClassList("section-separator");
+			integrationTogglesContainer.Add(separator);
+			
+			// Add UniTask section header
+			var unitaskHeader = new Label("UniTask Integration");
+			unitaskHeader.AddToClassList("section-header");
+			integrationTogglesContainer.Add(unitaskHeader);
+			
+			// Check if UniTask package exists
+			var unitaskExists = ServiceLocatorSettings.CheckUniTaskExists();
+			
+			// Add UniTask toggle
+			var unitaskContainer = new VisualElement();
+			unitaskContainer.AddToClassList("toggle-row");
+			
+			_unitaskToggle = new Toggle { 
+				value = _initialUniTaskValue, 
+				label = "Enable UniTask Services" 
+			};
+			_unitaskToggle.tooltip = "Enables the GetServiceUniTask<T>() methods for UniTask-based service retrieval.";
+			_unitaskToggle.SetEnabled(unitaskExists);
+			_unitaskToggle.RegisterValueChangedCallback(HandleUniTaskToggleValueChanged);;
+			
+			unitaskContainer.Add(_unitaskToggle);
+			integrationTogglesContainer.Add(unitaskContainer);
+			
+			// Add warning and install button if UniTask doesn't exist
+			if (!unitaskExists)
+			{
+				var warningContainer = new VisualElement();
+				warningContainer.AddToClassList("warning-container");
+				
+				var warningIcon = new Image();
+				warningIcon.AddToClassList("warning-icon");
+				warningIcon.image = EditorGUIUtility.FindTexture("console.warnicon");
+				warningContainer.Add(warningIcon);
+				
+				var warningLabel = new Label("UniTask package not found in project.");
+				warningLabel.AddToClassList("warning-text");
+				warningContainer.Add(warningLabel);
+				
+				integrationTogglesContainer.Add(warningContainer);
+				
+				_installUnitaskButton = new Button(OpenUniTaskInstallation);
+				_installUnitaskButton.text = "Install UniTask Package";
+				_installUnitaskButton.AddToClassList("install-button");
+				integrationTogglesContainer.Add(_installUnitaskButton);
+			}
+		}
+
+		/**
+		 * When enabling Async we must disable UniTask, and vice versa.
+		 */
+		private void HandleAsyncToggleValueChanged(bool value)
+		{
+			ServiceLocatorSettings.EnableAsyncServices = value;
+
+			if (value)
+			{
+				_unitaskToggle.value = ServiceLocatorSettings.EnableUniTaskServices = false;
+			}
+		}
+
+		/**
+		 * When enabling UniTask we must disable Async, and vice versa.
+		 */
+		private void HandleUniTaskToggleValueChanged(ChangeEvent<bool> evt)
+		{
+			ServiceLocatorSettings.EnableUniTaskServices = evt.newValue;
+
+			if (evt.newValue)
+			{
+				_asyncToggle.value = ServiceLocatorSettings.EnableAsyncServices = false;
+			}
+		}
+
+		private void CreateTitleBar()
+		{
 			// Title bar
 			var titleBar = new VisualElement();
 			titleBar.AddToClassList("services-title-bar");
@@ -61,95 +211,6 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 			syncIcon.AddToClassList("button-icon");
 			syncIcon.image = Resources.Load<Texture2D>("Icons/sync");
 			syncButton.Add(syncIcon);
-
-			// Add description
-			var descriptionLabel = new Label(
-				"Configure which features of the Service Locator are enabled. " +
-				"Disabling features will add the corresponding preprocessor directive to exclude the code from compilation.");
-			descriptionLabel.AddToClassList("settings-description");
-			Add(descriptionLabel);
-
-			// Add a container for the toggles
-			var togglesContainer = new VisualElement();
-			togglesContainer.AddToClassList("toggles-container");
-			Add(togglesContainer);
-
-			// Add toggles for each feature
-			_asyncToggle = AddFeatureToggle(togglesContainer, "Enable Async Services",
-				"Enables the GetServiceAsync<T>() methods for Task-based service retrieval.",
-				ServiceLocatorSettings.EnableAsyncServices,
-				value => ServiceLocatorSettings.EnableAsyncServices = value);
-
-			_promisesToggle = AddFeatureToggle(togglesContainer, "Enable Promise Services",
-				"Enables the GetService<T>() methods that return IServicePromise<T>.",
-				ServiceLocatorSettings.EnablePromiseServices,
-				value => ServiceLocatorSettings.EnablePromiseServices = value);
-
-			_coroutinesToggle = AddFeatureToggle(togglesContainer, "Enable Coroutine Services",
-				"Enables the GetServiceCoroutine<T>() methods for Unity coroutine-based service retrieval.",
-				ServiceLocatorSettings.EnableCoroutineServices,
-				value => ServiceLocatorSettings.EnableCoroutineServices = value);
-
-			_sceneTrackingToggle = AddFeatureToggle(togglesContainer, "Enable Scene Tracking",
-				"Enables automatic tracking and cleanup of services when scenes are unloaded.",
-				ServiceLocatorSettings.EnableSceneTracking,
-				value => ServiceLocatorSettings.EnableSceneTracking = value);
-
-			_loggingToggle = AddFeatureToggle(togglesContainer, "Enable Logging",
-				"Enables debug logging for service registration, retrieval, and other operations.",
-				ServiceLocatorSettings.EnableLogging,
-				value => ServiceLocatorSettings.EnableLogging = value);
-				
-			// Add separator for UniTask section
-			var separator = new VisualElement();
-			separator.AddToClassList("section-separator");
-			togglesContainer.Add(separator);
-			
-			// Add UniTask section header
-			var unitaskHeader = new Label("UniTask Integration");
-			unitaskHeader.AddToClassList("section-header");
-			togglesContainer.Add(unitaskHeader);
-			
-			// Check if UniTask package exists
-			bool unitaskExists = ServiceLocatorSettings.CheckUniTaskExists();
-			
-			// Add UniTask toggle
-			var unitaskContainer = new VisualElement();
-			unitaskContainer.AddToClassList("toggle-row");
-			
-			_unitaskToggle = new Toggle { 
-				value = ServiceLocatorSettings.EnableUniTaskServices, 
-				label = "Enable UniTask Services" 
-			};
-			_unitaskToggle.tooltip = "Enables the GetServiceUniTask<T>() methods for UniTask-based service retrieval.";
-			_unitaskToggle.SetEnabled(unitaskExists);
-			_unitaskToggle.RegisterValueChangedCallback(evt => ServiceLocatorSettings.EnableUniTaskServices = evt.newValue);
-			
-			unitaskContainer.Add(_unitaskToggle);
-			togglesContainer.Add(unitaskContainer);
-			
-			// Add warning and install button if UniTask doesn't exist
-			if (!unitaskExists)
-			{
-				var warningContainer = new VisualElement();
-				warningContainer.AddToClassList("warning-container");
-				
-				var warningIcon = new Image();
-				warningIcon.AddToClassList("warning-icon");
-				warningIcon.image = EditorGUIUtility.FindTexture("console.warnicon");
-				warningContainer.Add(warningIcon);
-				
-				var warningLabel = new Label("UniTask package not found in project.");
-				warningLabel.AddToClassList("warning-text");
-				warningContainer.Add(warningLabel);
-				
-				togglesContainer.Add(warningContainer);
-				
-				_installUnitaskButton = new Button(OpenUniTaskInstallation);
-				_installUnitaskButton.text = "Install UniTask Package";
-				_installUnitaskButton.AddToClassList("install-button");
-				togglesContainer.Add(_installUnitaskButton);
-			}
 		}
 
 		/// <summary>

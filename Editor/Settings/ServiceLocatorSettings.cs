@@ -130,6 +130,10 @@ namespace Nonatomic.ServiceLocator.Settings
 		/// </summary>
 		public static bool CheckUniTaskExists()
 		{
+			#if UNITASK_LOCATOR_SUPPORT
+			return true;
+			#endif
+			
 			return Directory.Exists("Packages/com.cysharp.unitask") ||
 				   Directory.Exists("Assets/Plugins/UniTask");
 		}
