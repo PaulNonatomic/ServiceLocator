@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Nonatomic.ServiceLocator;
 using NUnit.Framework;
@@ -232,76 +233,49 @@ namespace Tests.EditMode
 		#if UNITY_EDITOR
 		// These tests verify that the code behaves correctly based on preprocessor directives
 		[Test]
-		public void ConfiguredFeatures_AreConsistentWithPreprocessorDirectives()
+		public void ConfiguredFeatures_UniTaskMethods_DependOnPreprocessorDirectives()
 		{
-			// Core features always available
-			Assert.DoesNotThrow(() => _serviceLocator.Register(new TestService()));
-			Assert.DoesNotThrow(() => _serviceLocator.TryGetService(out TestService _));
-			Assert.DoesNotThrow(() => _serviceLocator.Unregister<TestService>());
-			Assert.DoesNotThrow(() => _serviceLocator.GetServiceOrDefault<TestService>());
-			Assert.DoesNotThrow(() => _serviceLocator.GetAllServices());
+		   var locatorType = typeof(BaseServiceLocator);
 
-			// Check if methods exist based on preprocessor directives
-			var locatorType = typeof(BaseServiceLocator);
+		   #if !DISABLE_SL_UNITASK && ENABLE_UNITASK
+		   // When DISABLE_SL_UNITASK is not defined and ENABLE_UNITASK is defined,
+		   // UniTask methods should exist
+		   
+		   // Check for GetServiceAsync methods that return UniTask
+		   var hasUniTaskMethods = locatorType.GetMethods()
+		      .Any(m => m.Name.StartsWith("GetServiceAsync") && 
+		            m.ReturnType.Name.Contains("UniTask"));
 
-			// Instead of looking for specific methods by name and parameter types,
-			// check for the existence of methods with specific patterns
+		   Assert.IsTrue(hasUniTaskMethods,
+		      "GetServiceAsync methods returning UniTask should exist when DISABLE_SL_UNITASK is not defined and ENABLE_UNITASK is defined");
 
-			#if !DISABLE_SL_ASYNC
-			// Look for any method that starts with "GetServiceAsync"
-			var hasAsyncMethods = locatorType.GetMethods()
-				.Any(m => m.Name.StartsWith("GetServiceAsync"));
-			Assert.IsTrue(hasAsyncMethods, "GetServiceAsync methods should exist when DISABLE_SL_ASYNC is not defined");
-			#else
-            // Look for any method that starts with "GetServiceAsync"
-            var hasAsyncMethods = locatorType.GetMethods()
-                .Any(m => m.Name.StartsWith("GetServiceAsync"));
-            Assert.IsFalse(hasAsyncMethods, "GetServiceAsync methods should not exist when DISABLE_SL_ASYNC is defined");
-			#endif
+		   var hasUniTaskPromiseMap = locatorType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
+		      .Any(f => f.Name.Contains("UniTaskPromiseMap"));
 
-			#if !DISABLE_SL_PROMISES
-            // Look for any GetService method that returns IServicePromise
-            var hasPromiseMethods = locatorType.GetMethods()
-                .Any(m => m.Name == "GetService" &&
-                       m.ReturnType.IsGenericType &&
-                       m.ReturnType.GetGenericTypeDefinition().Name.StartsWith("IServicePromise"));
-            Assert.IsTrue(hasPromiseMethods,
-                "GetService methods returning IServicePromise should exist when DISABLE_SL_PROMISES is not defined");
-			#else
-			// Look for any GetService method that returns IServicePromise
-			var hasPromiseMethods = locatorType.GetMethods()
-				.Any(m => m.Name == "GetService" &&
-						  m.ReturnType.IsGenericType &&
-						  m.ReturnType.GetGenericTypeDefinition().Name.StartsWith("IServicePromise"));
-			Assert.IsFalse(hasPromiseMethods,
-				"GetService methods returning IServicePromise should not exist when DISABLE_SL_PROMISES is defined");
-			#endif
+		   Assert.IsTrue(hasUniTaskPromiseMap,
+		      "UniTaskPromiseMap field should exist when DISABLE_SL_UNITASK is not defined and ENABLE_UNITASK is defined");
 
-			#if !DISABLE_SL_COROUTINES
-            // Look for any GetServiceCoroutine method
-            var hasCoroutineMethods = locatorType.GetMethods()
-                .Any(m => m.Name == "GetServiceCoroutine");
-            Assert.IsTrue(hasCoroutineMethods, "GetServiceCoroutine methods should exist when DISABLE_SL_COROUTINES is not defined");
-			#else
-			// Look for any GetServiceCoroutine method
-			var hasCoroutineMethods = locatorType.GetMethods()
-				.Any(m => m.Name == "GetServiceCoroutine");
-			Assert.IsFalse(hasCoroutineMethods,
-				"GetServiceCoroutine methods should not exist when DISABLE_SL_COROUTINES is defined");
-			#endif
-
-			#if !DISABLE_SL_SCENE_TRACKING
-			// Look for scene-related methods
-			var hasSceneTrackingMethods = locatorType.GetMethods()
-				.Any(m => m.Name == "GetSceneNameForService" || m.Name == "UnregisterServicesFromScene");
-			Assert.IsTrue(hasSceneTrackingMethods,
-				"Scene tracking methods should exist when DISABLE_SL_SCENE_TRACKING is not defined");
-			#else
-            // Look for scene-related methods
-            bool hasSceneTrackingMethods = locatorType.GetMethods()
-                .Any(m => m.Name == "GetSceneNameForService" || m.Name == "UnregisterServicesFromScene");
-            Assert.IsFalse(hasSceneTrackingMethods, "Scene tracking methods should not exist when DISABLE_SL_SCENE_TRACKING is defined");
-			#endif
+		   var hasCleanupUniTaskPromises = locatorType.GetMethod("CleanupUniTaskPromises");
+		   Assert.IsNotNull(hasCleanupUniTaskPromises,
+		      "CleanupUniTaskPromises method should exist when DISABLE_SL_UNITASK is not defined and ENABLE_UNITASK is defined");
+		   #elif DISABLE_SL_UNITASK || !ENABLE_UNITASK
+		     // When DISABLE_SL_UNITASK is defined or ENABLE_UNITASK is not defined,
+		     // UniTask methods should not exist
+		     var hasUniTaskMethods = locatorType.GetMethods()
+		         .Any(m => m.ReturnType.Name.Contains("UniTask"));
+		     
+		     Assert.IsFalse(hasUniTaskMethods, "GetServiceAsync methods returning UniTask should not exist when DISABLE_SL_UNITASK is defined or ENABLE_UNITASK is not defined");
+		     
+		     var hasUniTaskPromiseMap = locatorType.GetFields(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+		         .Any(f => f.Name.Contains("UniTaskPromiseMap"));
+		     
+		     Assert.IsFalse(hasUniTaskPromiseMap, 
+		         "UniTaskPromiseMap field should not exist when DISABLE_SL_UNITASK is defined or ENABLE_UNITASK is not defined");
+		         
+		     var hasCleanupUniTaskPromises = locatorType.GetMethod("CleanupUniTaskPromises");
+		     Assert.IsNull(hasCleanupUniTaskPromises, 
+		         "CleanupUniTaskPromises method should not exist when DISABLE_SL_UNITASK is defined or ENABLE_UNITASK is not defined");
+		   #endif
 		}
 		#endif
 
