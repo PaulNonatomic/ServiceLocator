@@ -350,23 +350,23 @@ namespace Nonatomic.ServiceLocator
 		/// <summary>
 		///     Cleans up the ServiceLocator, clearing services, promises, and coroutines.
 		/// </summary>
-		public virtual void Cleanup()
+		public virtual void Cleanup(bool disposeServices = true)
 		{
 			lock (Lock)
 			{
-				foreach (var service in ServiceMap.Values)
+				if (disposeServices)
 				{
-					if (service is IDisposable disposable)
+					foreach (var disposable in ServiceMap.Values.OfType<IDisposable>())
 					{
 						disposable.Dispose();
 					}
 				}
+				
+				ServiceMap.Clear();
 
 				#if !DISABLE_SL_SCENE_TRACKING
 				ServiceSceneMap.Clear();
 				#endif
-
-				ServiceMap.Clear();
 
 				#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
 				CleanupPromises();
