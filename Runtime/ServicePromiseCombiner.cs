@@ -20,13 +20,17 @@ namespace Nonatomic.ServiceLocator
 			// Create linked token that can be canceled either by the provided token or internally
 			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
 			var linkedToken = linkedCts.Token;
-			
+
 			// Register cancellation callback
-			linkedToken.Register(() => {
+			linkedToken.Register(() =>
+			{
 				lock (lockObj)
 				{
-					if (isRejected) return;
-					
+					if (isRejected)
+					{
+						return;
+					}
+
 					isRejected = true;
 					resultPromise.Reject(new TaskCanceledException("Combined promise operation was canceled"));
 				}
@@ -45,8 +49,11 @@ namespace Nonatomic.ServiceLocator
 					{
 						lock (lockObj)
 						{
-							if (isRejected) return;
-							
+							if (isRejected)
+							{
+								return;
+							}
+
 							isRejected = true;
 							resultPromise.Reject(ex);
 						}
@@ -57,8 +64,11 @@ namespace Nonatomic.ServiceLocator
 
 			void CheckAllResolved()
 			{
-				if (Interlocked.Increment(ref resolvedCount) != promises.Length) return;
-				
+				if (Interlocked.Increment(ref resolvedCount) != promises.Length)
+				{
+					return;
+				}
+
 				try
 				{
 					var finalResult = resultSelector(results);
@@ -77,7 +87,7 @@ namespace Nonatomic.ServiceLocator
 			CancellationToken cancellation = default)
 		{
 			return CombinePromisesInternal(
-				new IServicePromise<object>[] { p1.AsObjectPromise(), p2.AsObjectPromise() },
+				new[] { p1.AsObjectPromise(), p2.AsObjectPromise() },
 				results => ((T1)results[0], (T2)results[1]),
 				cancellation
 			);
@@ -90,7 +100,7 @@ namespace Nonatomic.ServiceLocator
 			CancellationToken cancellation = default)
 		{
 			return CombinePromisesInternal(
-				new IServicePromise<object>[] { p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise() },
+				new[] { p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise() },
 				results => ((T1)results[0], (T2)results[1], (T3)results[2]),
 				cancellation
 			);
@@ -104,12 +114,12 @@ namespace Nonatomic.ServiceLocator
 			CancellationToken cancellation = default)
 		{
 			return CombinePromisesInternal(
-				new IServicePromise<object>[] { p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise(), p4.AsObjectPromise() },
+				new[] { p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise(), p4.AsObjectPromise() },
 				results => ((T1)results[0], (T2)results[1], (T3)results[2], (T4)results[3]),
 				cancellation
 			);
 		}
-		
+
 		public static IServicePromise<(T1, T2, T3, T4, T5)> CombinePromises<T1, T2, T3, T4, T5>(
 			IServicePromise<T1> p1,
 			IServicePromise<T2> p2,
@@ -119,12 +129,16 @@ namespace Nonatomic.ServiceLocator
 			CancellationToken cancellation = default)
 		{
 			return CombinePromisesInternal(
-				new IServicePromise<object>[] { p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise(), p4.AsObjectPromise(), p5.AsObjectPromise() },
+				new[]
+				{
+					p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise(), p4.AsObjectPromise(),
+					p5.AsObjectPromise()
+				},
 				results => ((T1)results[0], (T2)results[1], (T3)results[2], (T4)results[3], (T5)results[4]),
 				cancellation
 			);
 		}
-		
+
 		public static IServicePromise<(T1, T2, T3, T4, T5, T6)> CombinePromises<T1, T2, T3, T4, T5, T6>(
 			IServicePromise<T1> p1,
 			IServicePromise<T2> p2,
@@ -135,8 +149,13 @@ namespace Nonatomic.ServiceLocator
 			CancellationToken cancellation = default)
 		{
 			return CombinePromisesInternal(
-				new IServicePromise<object>[] { p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise(), p4.AsObjectPromise(), p5.AsObjectPromise(), p6.AsObjectPromise() },
-				results => ((T1)results[0], (T2)results[1], (T3)results[2], (T4)results[3], (T5)results[4], (T6)results[5]),
+				new[]
+				{
+					p1.AsObjectPromise(), p2.AsObjectPromise(), p3.AsObjectPromise(), p4.AsObjectPromise(),
+					p5.AsObjectPromise(), p6.AsObjectPromise()
+				},
+				results => ((T1)results[0], (T2)results[1], (T3)results[2], (T4)results[3], (T5)results[4],
+					(T6)results[5]),
 				cancellation
 			);
 		}

@@ -14,29 +14,29 @@ namespace Nonatomic.ServiceLocator
 				throw new InvalidOperationException($"{GetType().Name} must implement the {typeof(T).Name} interface.");
 			}
 		}
-		
+
+		protected virtual void OnDestroy()
+		{
+			if (!ServiceLocator)
+			{
+				throw new InvalidOperationException($"{GetType().Name} requires a reference to a ServiceLocator.");
+			}
+
+			ServiceLocator.Unregister<T>();
+		}
+
 		/// <summary>
-		/// To be called once a service is initialized and ready to be registered with the ServiceLocator.
+		///     To be called once a service is initialized and ready to be registered with the ServiceLocator.
 		/// </summary>
 		/// <exception cref="InvalidOperationException"></exception>
 		protected virtual void ServiceReady()
 		{
-			if(!ServiceLocator)
+			if (!ServiceLocator)
 			{
 				throw new InvalidOperationException($"{GetType().Name} requires a reference to a ServiceLocator.");
 			}
-			
-			ServiceLocator.Register<T>(this as T);
-		}
 
-		protected virtual void OnDestroy()
-		{
-			if(!ServiceLocator)
-			{
-				throw new InvalidOperationException($"{GetType().Name} requires a reference to a ServiceLocator.");
-			}
-			
-			ServiceLocator.Unregister<T>();
+			ServiceLocator.Register(this as T);
 		}
 	}
 }

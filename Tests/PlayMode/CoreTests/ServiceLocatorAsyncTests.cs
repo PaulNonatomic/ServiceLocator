@@ -10,7 +10,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-namespace Tests.PlayMode
+namespace Tests.PlayMode.CoreTests
 {
 	[TestFixture]
 	public class ServiceLocatorAsyncTests
@@ -264,7 +264,8 @@ namespace Tests.PlayMode
 		public IEnumerator Async_MultiService_AllResolveWhenRegistered()
 		{
 			// Start multi-service async operation
-			var task = _serviceLocator.GetServicesAsync<ServiceLocatorTestUtils.TestService, ServiceLocatorTestUtils.AnotherTestService>();
+			var task = _serviceLocator
+				.GetServicesAsync<ServiceLocatorTestUtils.TestService, ServiceLocatorTestUtils.AnotherTestService>();
 
 			yield return null;
 
@@ -302,7 +303,9 @@ namespace Tests.PlayMode
 			using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cts1.Token, cts2.Token);
 
 			// Start multiple service requests with the linked token
-			var task = _serviceLocator.GetServicesAsync<ServiceLocatorTestUtils.TestService, ServiceLocatorTestUtils.AnotherTestService>(linkedCts.Token);
+			var task = _serviceLocator
+				.GetServicesAsync<ServiceLocatorTestUtils.TestService, ServiceLocatorTestUtils.AnotherTestService>(
+					linkedCts.Token);
 
 			yield return null;
 
