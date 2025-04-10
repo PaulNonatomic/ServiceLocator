@@ -31,6 +31,7 @@ To install ServiceLocator in your Unity project, add the package from the git UR
 - Automatic scene tracking for services with a fallback cleanup method when scenes are unloaded
 - Service validation for checking if MonoBehaviour services are valid or destroyed
 - Configurable feature toggles via the Service Locator Window settings tab
+- Fluent API options
 
 ## Usage
 
