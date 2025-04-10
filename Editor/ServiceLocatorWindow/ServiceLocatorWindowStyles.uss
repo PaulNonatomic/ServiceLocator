@@ -47,6 +47,7 @@
 .services-title-bar {
     flex-direction: row;
     justify-content: space-between;
+    min-height: 28px;
 }
 
 /* Updated: Lighter text for service labels */
@@ -178,6 +179,7 @@ LocatorItem .unity-toggle__input {
     border-bottom-width: 1px;
     border-color: rgba(0, 0, 0, 0.2);
     margin-bottom: 10px;
+    min-height:30px;
 }
 
 .tab-button {
@@ -245,6 +247,7 @@ LocatorItem .unity-toggle__input {
     padding: 8px;
     background-color: rgba(0, 0, 0, 0.2);
     border-radius: 3px;
+    min-height: 34px;
 }
 
 .toggle-row:hover {
@@ -337,6 +340,7 @@ LocatorItem .unity-toggle__input {
     flex-direction: row;
     padding: 5px 0;
     margin-bottom: 5px;
+    min-height: 38px;
 }
 
 .search-field {
@@ -367,7 +371,8 @@ LocatorItem .unity-toggle__input {
 }
 
 .no-results-message {
-    margin-top: 5px;
+    margin-top: 0px;
+    margin-bottom: 5px;
     padding: 10px;
     color: rgba(255, 255, 255, 0.7);
     -unity-text-align: middle-center;

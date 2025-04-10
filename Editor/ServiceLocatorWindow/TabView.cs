@@ -18,12 +18,10 @@ namespace Nonatomic.ServiceLocator.Editor.ServiceLocatorWindow
 		{
 			AddToClassList("tab-view");
 
-			// Create tab buttons container
 			_tabButtonsContainer = new();
 			_tabButtonsContainer.AddToClassList("tab-buttons-container");
 			Add(_tabButtonsContainer);
 
-			// Create tab content container
 			_tabContentContainer = new();
 			_tabContentContainer.AddToClassList("tab-content-container");
 			Add(_tabContentContainer);

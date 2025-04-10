@@ -1,9 +1,15 @@
 # Change Log
 
-## [0.10.2] - Apr 10, 2025
+## [0.10.4] - Apr 10, 2025
 - added bool to disable service disposal in BaseServiceLocator.Cleanup
   - In another project i've been using a shim to stuff services from another service locator in this ServiceLocator
   - but these services manage their own disposal.
+
+## [0.10.3] - Apr 04, 2025
+- Added some min height styling
+
+## [0.10.2] - Apr 04, 2025
+- Hot fix for setting placeholder text on search field in older versions of Unity
 
 ## [0.10.1] - Apr 04, 2025
 - Improved auto refresh of service list
