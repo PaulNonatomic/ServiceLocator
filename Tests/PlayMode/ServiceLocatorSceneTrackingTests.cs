@@ -225,7 +225,7 @@ namespace Tests.PlayMode
 	}
 
 	// Basic service classes
-	public class TestService
+	public class UniTaskTestService
 	{
 	}
 

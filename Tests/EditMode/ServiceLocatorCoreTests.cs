@@ -279,27 +279,6 @@ namespace Tests.EditMode
 		}
 		#endif
 
-		#if !DISABLE_SL_SCENE_TRACKING
-		[UnityTest]
-		public IEnumerator SceneUnload_RemovesSceneSpecificServices()
-		{
-			// Mock scene unloading by directly calling the handler
-			var service = new TestService();
-			_serviceLocator.Register(service);
-
-			// Get the scene name from the service map
-			var sceneName = _serviceLocator.GetSceneNameForService(typeof(TestService));
-
-			// Simulate scene unloading
-			_serviceLocator.UnregisterServicesFromScene(sceneName);
-
-			Assert.IsFalse(_serviceLocator.TryGetService(out TestService _),
-				"Service should be unregistered when its scene is unloaded");
-
-			yield return null;
-		}
-		#endif
-
 		// Helper class to expose protected methods for testing
 		private class TestServiceLocator : BaseServiceLocator
 		{
