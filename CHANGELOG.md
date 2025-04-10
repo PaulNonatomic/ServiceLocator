@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.11.0] - Apr 10, 2025
+- Added a fluent API for cleaner, more readable service retrieval, particularly when working with multiple services.
+- Added tests specifically for the fluent API
+
 ## [0.10.4] - Apr 10, 2025
 - added bool to disable service disposal in BaseServiceLocator.Cleanup
   - In another project i've been using a shim to stuff services from another service locator in this ServiceLocator
