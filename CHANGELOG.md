@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.11.1] - Apr 10, 2025
+- Added a fluent approach to error handling for the async retrieval methods.
+
 ## [0.11.0] - Apr 10, 2025
 - Added a fluent API for cleaner, more readable service retrieval, particularly when working with multiple services.
 - Added tests specifically for the fluent API

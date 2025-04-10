@@ -191,6 +191,104 @@ This fluent approach improves code readability significantly over the traditiona
 
 The fluent API supports up to 6 services in a single chain, just like the traditional API methods.
 
+### Simplified Error Handling with Extensions
+
+ServiceLocator now includes extension methods that provide standardized error handling for async operations, reducing the need for repetitive try/catch blocks.
+
+#### Basic Error Handling
+
+```csharp
+// Without extension - requires try/catch block
+private async void Start()
+{
+    try
+    {
+        var service = await _serviceLocator.GetServiceAsync<IMyService>();
+        service.DoSomething();
+    }
+    catch (OperationCanceledException)
+    {
+        // Handle cancellation
+    }
+    catch (Exception ex)
+    {
+        Debug.LogError($"Failed to retrieve service: {ex.Message}");
+    }
+}
+
+// With extension - cleaner code with default error logging
+private async void Start()
+{
+    var service = await _serviceLocator
+        .GetServiceAsync<IMyService>()
+        .WithErrorHandling(defaultValue: null);
+        
+    service?.DoSomething();
+}
+```
+
+#### Advanced Error Handling Options
+
+The error handling extensions provide several features:
+
+```csharp
+var service = await _serviceLocator
+    .GetServiceAsync<IMyService>()
+    .WithErrorHandling(
+        defaultValue: null,               // Value to return if the operation fails
+        errorHandler: ex => {             // Custom error handler
+            NotifyUser("Service unavailable");
+            AnalyticsManager.LogError(ex);
+        },
+        rethrowException: false           // Whether to rethrow the exception
+    );
+```
+
+#### Combining with Fluent API
+
+Error handling extensions work seamlessly with the fluent API:
+
+```csharp
+// Single service with fluent API and error handling
+var service = await _serviceLocator
+    .GetAsync<IMyService>()
+    .WithCancellation(destroyCancellationToken)
+    .WithErrorHandling(defaultValue: null);
+
+// Multiple services with fluent API and error handling
+var (service1, service2) = await _serviceLocator
+    .GetAsync<IMyService>()
+    .AndAsync<IAnotherService>()
+    .WithCancellation(destroyCancellationToken)
+    .WithErrorHandling(
+        defaultValue: (null, null),
+        errorHandler: ex => LogManager.LogError("Failed to load services", ex)
+    );
+
+// Process services safely with null checks
+if (service1 != null)
+{
+    service1.DoSomething();
+}
+
+if (service2 != null)
+{
+    service2.DoAnotherThing();
+}
+```
+
+#### Benefits
+
+These error handling extensions provide:
+
+1. **Automatic contextual logging**: Each error is logged with file, method, and line number
+2. **Default value support**: Specify fallback values when services aren't available
+3. **Customizable error handling**: Provide custom handlers for specific error scenarios
+4. **Simplified code**: Remove boilerplate try/catch blocks for cleaner service access
+5. **Cancellation handling**: OperationCanceledException is handled gracefully
+
+Error handling works for any Task-based operation, not just service retrieval, making it useful throughout your codebase.
+
 ### Unregistering Services
 Unregister a service when no longer needed:
 
