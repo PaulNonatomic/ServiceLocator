@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-namespace Tests.PlayMode
+namespace Tests.PlayMode.CoreTests
 {
 	/// <summary>
 	///     Tests for the scene tracking functionality of the ServiceLocator.

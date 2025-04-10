@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-namespace Tests.PlayMode
+namespace Tests.PlayMode.CoreTests
 {
 	[TestFixture]
 	public class ServiceLocatorCoroutineTests
@@ -96,27 +96,27 @@ namespace Tests.PlayMode
 			var gameObject = new GameObject("CoroutineServiceUser");
 			var serviceUser = gameObject.AddComponent<ServiceUserCoroutine>();
 			serviceUser.Initialize(_serviceLocator);
-    
+
 			// Give it a frame to start the coroutine
 			yield return null;
-    
+
 			// Verify coroutine started but service not yet retrieved
 			Assert.IsTrue(serviceUser.CoroutineStarted, "Coroutine should have started");
 			Assert.IsFalse(serviceUser.ServiceRetrieved, "Service should not be retrieved yet");
-    
+
 			// Cleanup the ServiceLocator before registering the service
 			_serviceLocator.Cleanup();
-    
+
 			// Now register the service - this shouldn't reach the coroutine
 			_serviceLocator.Register(new ServiceLocatorTestUtils.TestService());
-    
+
 			// Wait a bit to make sure the coroutine had time to process if it was still active
 			yield return new WaitForSeconds(0.2f);
-    
+
 			// We need to destroy the game object to ensure the coroutine doesn't continue processing
 			Object.Destroy(gameObject);
 			yield return null;
-    
+
 			// Verify service was NOT retrieved (because coroutine was cancelled)
 			Assert.IsFalse(serviceUser.ServiceRetrieved, "Service should not be retrieved after cleanup");
 			Assert.IsNull(serviceUser.RetrievedService, "Retrieved service should remain null after cleanup");

@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-namespace Tests.EditMode
+namespace Tests.EditMode.CoreTests
 {
 	/// <summary>
 	///     Core functionality tests for the ServiceLocator that don't depend on specific
@@ -260,13 +260,13 @@ namespace Tests.EditMode
 			#endif
 
 			#if !DISABLE_SL_PROMISES
-            // Look for any GetService method that returns IServicePromise
-            var hasPromiseMethods = locatorType.GetMethods()
-                .Any(m => m.Name == "GetService" &&
-                       m.ReturnType.IsGenericType &&
-                       m.ReturnType.GetGenericTypeDefinition().Name.StartsWith("IServicePromise"));
-            Assert.IsTrue(hasPromiseMethods,
-                "GetService methods returning IServicePromise should exist when DISABLE_SL_PROMISES is not defined");
+			// Look for any GetService method that returns IServicePromise
+			var hasPromiseMethods = locatorType.GetMethods()
+				.Any(m => m.Name == "GetService" &&
+						  m.ReturnType.IsGenericType &&
+						  m.ReturnType.GetGenericTypeDefinition().Name.StartsWith("IServicePromise"));
+			Assert.IsTrue(hasPromiseMethods,
+				"GetService methods returning IServicePromise should exist when DISABLE_SL_PROMISES is not defined");
 			#else
 			// Look for any GetService method that returns IServicePromise
 			var hasPromiseMethods = locatorType.GetMethods()
@@ -278,10 +278,11 @@ namespace Tests.EditMode
 			#endif
 
 			#if !DISABLE_SL_COROUTINES
-            // Look for any GetServiceCoroutine method
-            var hasCoroutineMethods = locatorType.GetMethods()
-                .Any(m => m.Name == "GetServiceCoroutine");
-            Assert.IsTrue(hasCoroutineMethods, "GetServiceCoroutine methods should exist when DISABLE_SL_COROUTINES is not defined");
+			// Look for any GetServiceCoroutine method
+			var hasCoroutineMethods = locatorType.GetMethods()
+				.Any(m => m.Name == "GetServiceCoroutine");
+			Assert.IsTrue(hasCoroutineMethods,
+				"GetServiceCoroutine methods should exist when DISABLE_SL_COROUTINES is not defined");
 			#else
 			// Look for any GetServiceCoroutine method
 			var hasCoroutineMethods = locatorType.GetMethods()
