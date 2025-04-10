@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-namespace Tests.PlayMode
+namespace Tests.PlayMode.CoreTests
 {
 	[TestFixture]
 	public class ServiceLocatorPromiseTests

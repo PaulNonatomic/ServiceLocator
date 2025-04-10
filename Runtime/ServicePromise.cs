@@ -6,39 +6,38 @@ namespace Nonatomic.ServiceLocator
 {
 	public class ServicePromise<T> : IServicePromise<T>
 	{
-		private T _result;
-		private Exception _error;
-		private bool _isResolved;
-		private bool _isRejected;
 		private readonly TaskCompletionSource<T> _taskCompletion = new();
-		private TaskCompletionSource<object> _innerTaskCompletion;
 		private CancellationTokenRegistration? _cancellationRegistration;
-
-		public void BindTo(TaskCompletionSource<object> taskCompletion)
-		{
-			_innerTaskCompletion = taskCompletion;
-		}
+		private Exception _error;
+		private TaskCompletionSource<object> _innerTaskCompletion;
+		private bool _isRejected;
+		private bool _isResolved;
+		private T _result;
 
 		public void Resolve(T value)
 		{
-			if (_isResolved || _isRejected) return;
-			
+			if (_isResolved || _isRejected)
+			{
+				return;
+			}
+
 			_result = value;
 			_isResolved = true;
 			_taskCompletion.TrySetResult(value);
-			_innerTaskCompletion?.TrySetResult(value); 
+			_innerTaskCompletion?.TrySetResult(value);
 		}
-		
+
 		public void WithCancellation(CancellationToken cancellationToken)
 		{
 			if (cancellationToken.CanBeCanceled)
 			{
-				_cancellationRegistration = cancellationToken.Register(() => {
+				_cancellationRegistration = cancellationToken.Register(() =>
+				{
 					Reject(new TaskCanceledException("Service promise was canceled"));
 				});
 			}
 		}
-    
+
 		public void Dispose()
 		{
 			_cancellationRegistration?.Dispose();
@@ -46,15 +45,18 @@ namespace Nonatomic.ServiceLocator
 
 		public void Reject(Exception ex)
 		{
-			if (_isResolved || _isRejected) return;
-			
+			if (_isResolved || _isRejected)
+			{
+				return;
+			}
+
 			// Flatten AggregateException to its innermost exception if applicable
 			var innerEx = ex is AggregateException agg ? agg.Flatten().InnerException : ex;
-			
+
 			_error = innerEx;
 			_isRejected = true;
 			_taskCompletion.TrySetException(innerEx);
-			_innerTaskCompletion?.TrySetException(innerEx); 
+			_innerTaskCompletion?.TrySetException(innerEx);
 		}
 
 		public ServicePromise<TResult> Then<TResult>(Func<T, TResult> onFulfilled)
@@ -72,6 +74,7 @@ namespace Nonatomic.ServiceLocator
 				{
 					resultPromise.Reject(ex);
 				}
+
 				return resultPromise;
 			}
 
@@ -80,7 +83,7 @@ namespace Nonatomic.ServiceLocator
 				resultPromise.Reject(_error);
 				return resultPromise;
 			}
-			
+
 			_taskCompletion.Task.ContinueWith(task =>
 			{
 				UnitySynchronizationContext.Context.Post(_ =>
@@ -122,6 +125,7 @@ namespace Nonatomic.ServiceLocator
 				{
 					resultPromise.Reject(ex);
 				}
+
 				return resultPromise;
 			}
 
@@ -172,6 +176,7 @@ namespace Nonatomic.ServiceLocator
 				{
 					resultPromise.Reject(ex);
 				}
+
 				return resultPromise;
 			}
 
@@ -205,6 +210,11 @@ namespace Nonatomic.ServiceLocator
 			});
 
 			return resultPromise;
+		}
+
+		public void BindTo(TaskCompletionSource<object> taskCompletion)
+		{
+			_innerTaskCompletion = taskCompletion;
 		}
 	}
 }

@@ -117,6 +117,78 @@ _serviceLocator.GetService<IMyService, IAnotherService, IThirdService>()
     })
     .Catch(ex => Debug.LogError($"Failed to get services: {ex.Message}"));
 ```
+### Fluent API for Service Retrieval
+
+ServiceLocator now includes a fluent API for cleaner, more readable service retrieval, particularly when working with multiple services.
+
+#### Async/Await with Fluent API:
+
+```csharp
+// Single service
+var myService = await _serviceLocator
+    .GetAsync<IMyService>()
+    .WithCancellation(destroyCancellationToken);
+
+// Multiple services
+var (myService, anotherService, thirdService) = await _serviceLocator
+    .GetAsync<IMyService>()
+    .AndAsync<IAnotherService>()
+    .AndAsync<IThirdService>()
+    .WithCancellation(destroyCancellationToken);
+```
+
+#### Promise-based with Fluent API:
+
+```csharp
+// Single service
+_serviceLocator
+    .Get<IMyService>()
+    .WithCancellation(destroyCancellationToken)
+    .Then(service => service.DoSomething())
+    .Catch(ex => Debug.LogError($"Failed to get service: {ex.Message}"));
+
+// Multiple services
+_serviceLocator
+    .Get<IMyService>()
+    .And<IAnotherService>()
+    .And<IThirdService>()
+    .WithCancellation(destroyCancellationToken)
+    .Then(services => {
+        var (service1, service2, service3) = services;
+        service1.DoSomething();
+        service2.DoAnotherThing();
+        service3.DoThirdThing();
+    })
+    .Catch(ex => Debug.LogError($"Failed to get services: {ex.Message}"));
+```
+
+#### Coroutine-based with Fluent API:
+
+```csharp
+// Single service
+StartCoroutine(
+    _serviceLocator
+        .GetCoroutine<IMyService>()
+        .WithCallback(service => service?.DoSomething())
+);
+
+// Multiple services
+StartCoroutine(
+    _serviceLocator
+        .GetCoroutine<IMyService>()
+        .And<IAnotherService>()
+        .And<IThirdService>()
+        .WithCallback((service1, service2, service3) => {
+            service1?.DoSomething();
+            service2?.DoAnotherThing();
+            service3?.DoThirdThing();
+        })
+);
+```
+
+This fluent approach improves code readability significantly over the traditional approach, especially when retrieving multiple services. It maintains all the same functionality, including cancellation support, while providing a more intuitive and chainable API.
+
+The fluent API supports up to 6 services in a single chain, just like the traditional API methods.
 
 ### Unregistering Services
 Unregister a service when no longer needed:
