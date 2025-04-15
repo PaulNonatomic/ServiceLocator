@@ -10,11 +10,14 @@ using Object = UnityEngine.Object;
 
 namespace Nonatomic.ServiceLocator
 {
+	///BaseServiceLocator.cs
 	/// <summary>
 	///     A ScriptableObject-based service locator for managing and accessing services throughout the application.
 	/// </summary>
 	public abstract partial class BaseServiceLocator : ScriptableObject
 	{
+		public event Action? OnChange;
+		
 		[NonSerialized] protected readonly object Lock = new();
 
 		#if !DISABLE_SL_COROUTINES
@@ -59,8 +62,6 @@ namespace Nonatomic.ServiceLocator
 			DeInitialize();
 		}
 
-		public event Action? OnChange;
-
 		/// <summary>
 		///     Returns a dictionary containing all currently registered services.
 		/// </summary>
@@ -86,6 +87,14 @@ namespace Nonatomic.ServiceLocator
 			}
 		}
 		#endif
+
+		/// <summary>
+		///     Invokes the OnChange event.
+		/// </summary>
+		protected virtual void NotifyChange()
+		{
+			OnChange?.Invoke();
+		}
 
 		/// <summary>
 		///     Registers a service with the service locator.
@@ -146,14 +155,6 @@ namespace Nonatomic.ServiceLocator
 				Debug.Log($"Service registered: {serviceType.Name}");
 				#endif
 			}
-		}
-
-		/// <summary>
-		///     Invokes the OnChange event.
-		/// </summary>
-		protected virtual void NotifyChange()
-		{
-			OnChange?.Invoke();
 		}
 
 		/// <summary>
@@ -356,7 +357,10 @@ namespace Nonatomic.ServiceLocator
 		{
 			lock (Lock)
 			{
-				foreach (var promiseList in PromiseMap.Values)
+				// Create a copy of the values collection to safely iterate over
+				var promiseLists = PromiseMap.Values.ToList();
+		
+				foreach (var promiseList in promiseLists)
 				{
 					foreach (var promise in promiseList.ToList())
 					{

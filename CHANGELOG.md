@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.11.2] - Apr 15, 2025
+- Hotfix for collection modification during enumeration within the promise cleanup process.
+
 ## [0.11.1] - Apr 10, 2025
 - Added a fluent approach to error handling for the async retrieval methods.
 

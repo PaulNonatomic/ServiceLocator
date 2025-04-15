@@ -3,6 +3,7 @@ using System.Threading;
 
 namespace Nonatomic.ServiceLocator
 {
+	///BaseServiceLocator.FluentPromise.cs
 	public abstract partial class BaseServiceLocator
 	{
 		#if !DISABLE_SL_PROMISES

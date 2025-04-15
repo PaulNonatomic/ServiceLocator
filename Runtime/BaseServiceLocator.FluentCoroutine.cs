@@ -4,6 +4,7 @@ using System.Collections;
 
 namespace Nonatomic.ServiceLocator
 {
+	///BaseServiceLocator.FluentCoroutine.cs
 	public abstract partial class BaseServiceLocator
 	{
 		#if !DISABLE_SL_COROUTINES

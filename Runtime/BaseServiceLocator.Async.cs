@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace Nonatomic.ServiceLocator
 {
+	///BaseServiceLocator.Async.cs
 	public abstract partial class BaseServiceLocator
 	{
 		/// <summary>

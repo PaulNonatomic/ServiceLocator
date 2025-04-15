@@ -7,6 +7,7 @@ using System.Linq;
 
 namespace Nonatomic.ServiceLocator
 {
+	///BaseServiceLocator.Coroutine.cs
 	public abstract partial class BaseServiceLocator
 	{
 		/// <summary>

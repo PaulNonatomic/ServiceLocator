@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 
 namespace Nonatomic.ServiceLocator
 {
+	///BaseServiceLocator.FluentAsync.cs
 	public abstract partial class BaseServiceLocator
 	{
 		/// <summary>
