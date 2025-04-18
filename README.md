@@ -1,7 +1,7 @@
 <div align=center>   
 
 <p align="center">
-  <img src="Readme~\logo.png" width="250">
+  <img src="Readme~\logo.png" width="500">
 </p>
 
 ### A flexible & efficient way to manage and access services in <a href="https://unity.com/">Unity</a>
