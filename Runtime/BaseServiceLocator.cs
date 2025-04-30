@@ -101,13 +101,27 @@ namespace Nonatomic.ServiceLocator
 		/// </summary>
 		/// <typeparam name="T">The type of the service being registered.</typeparam>
 		/// <param name="service">The instance of the service to register.</param>
-		public virtual void Register<T>(T service) where T : class
+		/// <returns>True if registration was successful, false otherwise.</returns>
+		public virtual bool Register<T>(T service) where T : class
 		{
 			lock (Lock)
 			{
 				if (service == null)
 				{
 					throw new ArgumentNullException("service", "Cannot register a null service.");
+				}
+				
+				// Add guard against destroyed MonoBehaviour services
+				if (service is MonoBehaviour mb)
+				{
+					// Check if the MonoBehaviour or its GameObject is being destroyed
+					if (!mb || !mb.gameObject)
+					{
+						#if !DISABLE_SL_LOGGING
+						Debug.LogWarning($"Skipped registration of service {typeof(T).Name} because it is being destroyed.");
+						#endif
+						return false;
+					}
 				}
 
 				var serviceType = typeof(T);
@@ -154,8 +168,10 @@ namespace Nonatomic.ServiceLocator
 				#if !DISABLE_SL_LOGGING
 				Debug.Log($"Service registered: {serviceType.Name}");
 				#endif
+				return true;
 			}
 		}
+		
 
 		/// <summary>
 		///     Unregisters a service from the service locator.

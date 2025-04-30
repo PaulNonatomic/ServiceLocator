@@ -1,5 +1,10 @@
 # Change Log
 
+## [0.11.3] - Apr 30, 2025
+- The Register<T> method not return a bool indicating if the service was registered successfully. This allows for better error handling and debugging when registering services.
+    - Registration will now fail if the service is a MonoBehaviour that is destroyed or being destroyed.
+    - Added additional PlayMode tests for MonoBehaviour service registration post-destruction.
+  
 ## [0.11.2] - Apr 15, 2025
 - Hotfix for collection modification during enumeration within the promise cleanup process.
 

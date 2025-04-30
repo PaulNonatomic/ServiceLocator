@@ -24,19 +24,20 @@ namespace Nonatomic.ServiceLocator
 
 			ServiceLocator.Unregister<T>();
 		}
-
+		
 		/// <summary>
 		///     To be called once a service is initialized and ready to be registered with the ServiceLocator.
 		/// </summary>
-		/// <exception cref="InvalidOperationException"></exception>
-		protected virtual void ServiceReady()
+		/// <returns>True if service was successfully registered, false otherwise.</returns>
+		protected virtual bool ServiceReady()
 		{
 			if (!ServiceLocator)
 			{
-				throw new InvalidOperationException($"{GetType().Name} requires a reference to a ServiceLocator.");
+				Debug.LogError($"{GetType().Name} requires a reference to a ServiceLocator.");
+				return false;
 			}
 
-			ServiceLocator.Register(this as T);
+			return ServiceLocator.Register(this as T);
 		}
 	}
 }
