@@ -1,6 +1,6 @@
 ﻿{
   "name": "com.nonatomic.servicelocator",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "displayName": "Service Locator",
   "description": "Service Locator",
   "unity": "2022.3",
