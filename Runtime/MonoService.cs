@@ -24,7 +24,7 @@ namespace Nonatomic.ServiceLocator
 
 			ServiceLocator.Unregister<T>();
 		}
-		
+
 		/// <summary>
 		///     To be called once a service is initialized and ready to be registered with the ServiceLocator.
 		/// </summary>

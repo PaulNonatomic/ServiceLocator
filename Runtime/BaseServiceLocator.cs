@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEditor;
@@ -10,18 +11,18 @@ using Object = UnityEngine.Object;
 
 namespace Nonatomic.ServiceLocator
 {
-	///BaseServiceLocator.cs
+	/// BaseServiceLocator.cs
 	/// <summary>
 	///     A ScriptableObject-based service locator for managing and accessing services throughout the application.
 	/// </summary>
 	public abstract partial class BaseServiceLocator : ScriptableObject
 	{
-		public event Action? OnChange;
-		
 		[NonSerialized] protected readonly object Lock = new();
 
 		#if !DISABLE_SL_COROUTINES
-		[NonSerialized] protected readonly List<(Type, Action<object>)> PendingCoroutines = new();
+		[NonSerialized]
+		protected readonly List<(Type ServiceType, Action<object?> Callback, Stopwatch? Stopwatch, TimeSpan? Timeout)>
+			PendingCoroutines = new();
 		#endif
 
 		#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
@@ -61,6 +62,8 @@ namespace Nonatomic.ServiceLocator
 
 			DeInitialize();
 		}
+
+		public event Action? OnChange;
 
 		/// <summary>
 		///     Returns a dictionary containing all currently registered services.
@@ -108,17 +111,15 @@ namespace Nonatomic.ServiceLocator
 			{
 				if (service == null)
 				{
-					throw new ArgumentNullException("service", "Cannot register a null service.");
+					throw new ArgumentNullException(nameof(service), "Cannot register a null service.");
 				}
-				
-				// Add guard against destroyed MonoBehaviour services
+
 				if (service is MonoBehaviour mb)
 				{
-					// Check if the MonoBehaviour or its GameObject is being destroyed
 					if (!mb || !mb.gameObject)
 					{
 						#if !DISABLE_SL_LOGGING
-						Debug.LogWarning($"Skipped registration of service {typeof(T).Name} because it is being destroyed.");
+                   Debug.LogWarning($"Skipped registration of service {typeof(T).Name} because it is being destroyed.");
 						#endif
 						return false;
 					}
@@ -128,7 +129,6 @@ namespace Nonatomic.ServiceLocator
 				ServiceMap[serviceType] = service;
 
 				#if !DISABLE_SL_SCENE_TRACKING
-				// Track scene information for this service
 				var sceneName = "No Scene";
 				if (service is MonoBehaviour monoBehaviour)
 				{
@@ -139,39 +139,37 @@ namespace Nonatomic.ServiceLocator
 				#endif
 
 				#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
-				// Resolve any pending promises for this service
 				if (PromiseMap.TryGetValue(serviceType, out var taskCompletions))
 				{
-					foreach (var tcs in taskCompletions.ToList())
+					foreach (var tcs in taskCompletions.ToList()) // ToList to allow modification
 					{
 						tcs.TrySetResult(service);
 					}
-
-					PromiseMap.Remove(serviceType);
+					// Cleaned up by individual TCS completions
+					// PromiseMap.Remove(serviceType); // This might be too aggressive if new promises arrive just after
 				}
 				#endif
 
 				#if !DISABLE_SL_COROUTINES
-				// Notify any pending coroutines
-				var pendingCoroutines =
-					PendingCoroutines.FindAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
-				foreach (var (_, callback) in pendingCoroutines)
-				{
-					callback(service);
-				}
+				var pendingCoroutinesForType = PendingCoroutines
+					.Where(pendingCoroutine => pendingCoroutine.ServiceType == serviceType)
+					.ToList(); // ToList to allow modification while iterating
 
-				PendingCoroutines.RemoveAll(pendingCoroutine => pendingCoroutine.Item1 == serviceType);
+				foreach (var pending in pendingCoroutinesForType)
+				{
+					pending.Callback(service);
+					PendingCoroutines.Remove(pending); // Remove after callback
+				}
 				#endif
 
 				NotifyChange();
 
 				#if !DISABLE_SL_LOGGING
-				Debug.Log($"Service registered: {serviceType.Name}");
+             Debug.Log($"Service registered: {serviceType.Name}");
 				#endif
 				return true;
 			}
 		}
-		
 
 		/// <summary>
 		///     Unregisters a service from the service locator.
@@ -189,24 +187,35 @@ namespace Nonatomic.ServiceLocator
 				#endif
 
 				#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
-				// Reject any pending promises for this service
 				if (PromiseMap.TryGetValue(serviceType, out var taskList))
 				{
-					foreach (var tcs in taskList.ToList())
+					foreach (var tcs in taskList.ToList()) // ToList to allow modification
 					{
 						tcs.TrySetException(new ObjectDisposedException(
 							serviceType.Name,
 							$"Service {serviceType.Name} was unregistered while waiting for it to be available"));
 					}
+					// Cleaned up by individual TCS completions
+					// PromiseMap.Remove(serviceType);
+				}
+				#endif
 
-					PromiseMap.Remove(serviceType);
+				#if !DISABLE_SL_COROUTINES
+				// Also cancel/notify pending coroutines for this service type
+				var coroutinesToCancel = PendingCoroutines
+					.Where(pc => pc.ServiceType == serviceType)
+					.ToList();
+				foreach (var pendingCoroutine in coroutinesToCancel)
+				{
+					pendingCoroutine.Callback(null); // Notify with null as service is gone
+					PendingCoroutines.Remove(pendingCoroutine);
 				}
 				#endif
 
 				NotifyChange();
 
 				#if !DISABLE_SL_LOGGING
-				Debug.Log($"Service unregistered: {serviceType.Name}");
+             Debug.Log($"Service unregistered: {serviceType.Name}");
 				#endif
 			}
 		}
@@ -275,7 +284,7 @@ namespace Nonatomic.ServiceLocator
 				NotifyChange();
 
 				#if !DISABLE_SL_LOGGING
-				Debug.Log("Service Locator cleaned up");
+             Debug.Log("Service Locator cleaned up");
 				#endif
 			}
 		}
@@ -298,10 +307,19 @@ namespace Nonatomic.ServiceLocator
 			SceneManager.sceneUnloaded += HandleSceneUnloaded;
 			#endif
 
+			#if !DISABLE_SL_COROUTINES && UNITY_EDITOR // Or a runtime check if not editor-only
+			// Start a coroutine runner if in editor and coroutines are enabled,
+			// or ensure a MonoBehaviour instance is available at runtime to run them.
+			// This example assumes an editor context or a pre-existing runner.
+			// For runtime, you might need a dedicated GameObject.
+			EditorApplication.update += UpdatePendingCoroutines;
+			#endif
+
+
 			IsInitialized = true;
 
 			#if !DISABLE_SL_LOGGING
-			Debug.Log("Service Locator initialized");
+          Debug.Log("Service Locator initialized");
 			#endif
 		}
 
@@ -317,6 +335,9 @@ namespace Nonatomic.ServiceLocator
 
 			#if UNITY_EDITOR
 			EditorApplication.playModeStateChanged -= HandlePlayModeStateChanged;
+			#if !DISABLE_SL_COROUTINES
+			EditorApplication.update -= UpdatePendingCoroutines;
+			#endif
 			#endif
 
 			#if !DISABLE_SL_SCENE_TRACKING
@@ -328,27 +349,10 @@ namespace Nonatomic.ServiceLocator
 			IsInitialized = false;
 
 			#if !DISABLE_SL_LOGGING
-			Debug.Log("Service Locator de-initialized");
+          Debug.Log("Service Locator de-initialized");
 			#endif
 		}
 
-		#if !DISABLE_SL_COROUTINES
-		/// <summary>
-		///     Cancels all pending coroutines.
-		/// </summary>
-		protected virtual void CancelPendingCoroutines()
-		{
-			lock (Lock)
-			{
-				foreach (var (_, callback) in PendingCoroutines)
-				{
-					callback(null!);
-				}
-
-				PendingCoroutines.Clear();
-			}
-		}
-		#endif
 
 		#if UNITY_EDITOR
 		/// <summary>
@@ -365,6 +369,53 @@ namespace Nonatomic.ServiceLocator
 		}
 		#endif
 
+		#if !DISABLE_SL_COROUTINES
+		/// <summary>
+		///     Cancels all pending coroutines.
+		/// </summary>
+		protected virtual void CancelPendingCoroutines()
+		{
+			lock (Lock)
+			{
+				foreach (var (_, callback, _, _) in PendingCoroutines)
+				{
+					callback(null!); // Notify with null as they are cancelled
+				}
+
+				PendingCoroutines.Clear();
+			}
+		}
+
+		/// <summary>
+		///     Called by EditorApplication.update or a runtime equivalent to check coroutine timeouts.
+		/// </summary>
+		protected virtual void UpdatePendingCoroutines()
+		{
+			lock (Lock)
+			{
+				if (PendingCoroutines.Count == 0)
+				{
+					return;
+				}
+
+				// Iterate backwards to allow removal
+				for (var i = PendingCoroutines.Count - 1; i >= 0; i--)
+				{
+					var pending = PendingCoroutines[i];
+					if (pending.Timeout.HasValue && pending.Stopwatch != null &&
+						pending.Stopwatch.Elapsed > pending.Timeout.Value)
+					{
+						#if !DISABLE_SL_LOGGING
+                       Debug.LogWarning($"Service {pending.ServiceType.Name} retrieval timed out via coroutine after {pending.Timeout.Value}.");
+						#endif
+						pending.Callback(null); // Timed out
+						PendingCoroutines.RemoveAt(i);
+					}
+				}
+			}
+		}
+		#endif
+
 		#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
 		/// <summary>
 		///     Cancels and removes all unfulfilled promises.
@@ -373,12 +424,10 @@ namespace Nonatomic.ServiceLocator
 		{
 			lock (Lock)
 			{
-				// Create a copy of the values collection to safely iterate over
 				var promiseLists = PromiseMap.Values.ToList();
-		
 				foreach (var promiseList in promiseLists)
 				{
-					foreach (var promise in promiseList.ToList())
+					foreach (var promise in promiseList.ToList()) // ToList for safe removal
 					{
 						promise.TrySetCanceled();
 					}
@@ -403,33 +452,22 @@ namespace Nonatomic.ServiceLocator
 
 			lock (Lock)
 			{
-				// Check if we have a service of this type registered
 				if (!ServiceMap.TryGetValue(typeof(T), out var registeredService))
 				{
 					return false;
 				}
 
-				// Check if the registered service is valid
-				if (registeredService == null ||
-					(registeredService is Object unityObj && unityObj == null))
+				if (registeredService == null || (registeredService is Object unityObj && unityObj == null))
 				{
 					return false;
 				}
 
-				// Check if the reference matches the registered service
-				// This handles the case where the service was replaced
-				if (!ReferenceEquals(serviceReference, registeredService))
-				{
-					return false;
-				}
-
-				// If we got here, the reference is valid and matches the current registration
-				return true;
+				return ReferenceEquals(serviceReference, registeredService);
 			}
 		}
 
 		/// <summary>
-		///     Validates if a service hewld by the ServiceLocator is valid.
+		///     Validates if a service held by the ServiceLocator is valid.
 		/// </summary>
 		/// <typeparam name="T">The service interface type</typeparam>
 		/// <returns>True if the reference is valid</returns>
@@ -437,26 +475,21 @@ namespace Nonatomic.ServiceLocator
 		{
 			lock (Lock)
 			{
-				// First check if the service is actually registered
 				if (!ServiceMap.TryGetValue(typeof(T), out var service))
 				{
 					return false;
 				}
 
-				// Check if the service is null
 				if (service == null)
 				{
 					return false;
 				}
 
-				// Special handling for Unity objects that might be destroyed
 				if (service is Object unityObject)
 				{
-					// Unity's "==" operator is overridden to check if the object is destroyed
 					return unityObject != null;
 				}
 
-				// For regular C# objects, if we got this far, it's valid
 				return true;
 			}
 		}
@@ -479,12 +512,12 @@ namespace Nonatomic.ServiceLocator
 					return;
 				}
 
-				foreach (var tcs in taskList.ToList())
+				foreach (var tcs in taskList.ToList()) // ToList for safe removal
 				{
 					tcs.TrySetException(exception);
 				}
-
-				PromiseMap.Remove(serviceType);
+				// TCS completion will lead to removal from PromiseMap in their respective ContinueWith/finally blocks
+				// PromiseMap.Remove(serviceType); // This might be too aggressive
 			}
 		}
 		#endif
@@ -520,7 +553,7 @@ namespace Nonatomic.ServiceLocator
 				}
 
 				#if !DISABLE_SL_LOGGING
-				Debug.LogWarning($"Detected: {servicesToRemove.Count} services remain in unloaded scene: {sceneName}");
+             Debug.LogWarning($"Detected: {servicesToRemove.Count} services remain in unloaded scene: {sceneName}");
 				#endif
 
 				foreach (var serviceType in servicesToRemove)
@@ -531,19 +564,29 @@ namespace Nonatomic.ServiceLocator
 					#if !DISABLE_SL_ASYNC || !DISABLE_SL_PROMISES
 					if (PromiseMap.TryGetValue(serviceType, out var taskList))
 					{
-						foreach (var tcs in taskList.ToList())
+						foreach (var tcs in taskList.ToList()) // ToList for safe removal
 						{
 							tcs.TrySetException(new ObjectDisposedException(
 								serviceType.Name,
 								$"Service {serviceType.Name} from scene {sceneName} was unregistered"));
 						}
+						// PromiseMap.Remove(serviceType); // Potentially too aggressive
+					}
+					#endif
 
-						PromiseMap.Remove(serviceType);
+					#if !DISABLE_SL_COROUTINES
+					var coroutinesToCancel = PendingCoroutines
+						.Where(pc => pc.ServiceType == serviceType)
+						.ToList();
+					foreach (var pendingCoroutine in coroutinesToCancel)
+					{
+						pendingCoroutine.Callback(null); // Notify with null
+						PendingCoroutines.Remove(pendingCoroutine);
 					}
 					#endif
 
 					#if !DISABLE_SL_LOGGING
-					Debug.LogWarning($"Unregistered {serviceType.Name} from unloaded scene {sceneName}");
+                Debug.LogWarning($"Unregistered {serviceType.Name} from unloaded scene {sceneName}");
 					#endif
 				}
 
