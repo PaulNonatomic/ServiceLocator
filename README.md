@@ -19,7 +19,17 @@ ServiceLocator is based on a ScriptableObject implementation, offering various m
 ---
 
 ## Installation
-To install ServiceLocator in your Unity project, add the package from the git URL: https://github.com/PaulNonatomic/ServiceLocator.git using the Unity package manager.
+
+Add **Service Locator** to your Unity project via Package Manager:
+
+1. Open **Window > Package Manager**
+2. Click **+** > **Add package from git URL**
+3. Enter:
+```
+https://www.pkglnk.dev/service-locator.git
+```
+
+[![pkglnk](https://www.pkglnk.dev/card/service-locator.svg)](https://www.pkglnk.dev/pkg/service-locator)
 
 ## Key Features
 - `ScriptableObject`-based implementation for seamless Unity integration
